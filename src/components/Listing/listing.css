@@ -1,0 +1,25 @@
+.listing-page {
+    padding: 20px;
+  }
+  
+  .listing-details {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  
+  .listing-images {
+    display: flex;
+    gap: 10px;
+  }
+  
+  .listing-images img {
+    width: 100px;
+    height: 100px;
+    object-fit: cover;
+  }
+  
+  .location {
+    margin-top: 20px;
+  }
+  

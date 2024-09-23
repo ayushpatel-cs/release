@@ -1,0 +1,27 @@
+.navbar {
+    background-color: #f8f8f8;
+    padding: 20px;
+  }
+  
+  .navbar-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .navbar-title {
+    font-size: 2rem;
+    color: #4a4a8a;
+  }
+  
+  .navbar-links {
+    display: flex;
+    gap: 20px;
+  }
+  
+  .navbar-link {
+    color: #4a4a8a;
+    text-decoration: none;
+    font-size: 1.2rem;
+  }
+  

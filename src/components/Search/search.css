@@ -1,0 +1,31 @@
+.search-page {
+    display: flex;
+    padding: 20px;
+  }
+  
+  .map-container {
+    flex: 1;
+    height: 500px;
+  }
+  
+  .listing-results {
+    flex: 1;
+    margin-left: 20px;
+  }
+  
+  .listing-item {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  
+  .listing-item img {
+    width: 100px;
+    height: 100px;
+    object-fit: cover;
+  }
+  
+  .listing-item h4 {
+    margin: 0;
+  }
+  
