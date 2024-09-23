@@ -1,27 +1,23 @@
-// components/Homepage.js
+// Homescreen.js
 import React from 'react';
 import './homepage.css';
-import '../../images/homescreen.png'
+import homescreenimage from '../../images/homescreen.png'
+
 function Homepage() {
   return (
     <div className="homepage">
-      <header className="header">
-        <div className="header-icons">
-          <div className="icon-grid" />
-          <div className="icon-user" />
-        </div>
-      </header>
       
       <div className="hero">
+        <h1 className="hero-title">ReLease</h1>
         <img
           className="hero-image"
-          src="/images/homescreen.png"  // Add the correct path to your image
+          src={homescreenimage}  
           alt="Interior room"
         />
-        <h1 className="hero-title">ReLease</h1>
         <h2 className="hero-subtitle">
           Looking for a place to stay? We've got you covered!
         </h2>
+        <button className="cta-button">Explore Now</button>
         <div className="search-bar">
           <div className="search-input">
             <label>Location</label>
