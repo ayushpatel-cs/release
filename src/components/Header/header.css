@@ -7,11 +7,23 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    max-height: 100px;
+  }
+  
+  .navbar-left {
+    display: flex;
+    align-items: center;
+  }
+  
+  .navbar-image {
+    width: 100px;
+    margin-right: 10px;
   }
   
   .navbar-title {
-    font-size: 2rem;
-    color: #4a4a8a;
+    font-size: 4rem;
+    color: #7C93C3;
+    margin: 0;
   }
   
   .navbar-links {
