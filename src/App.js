@@ -6,6 +6,7 @@ import Homepage from './components/Homepage/homepage.js';
 import Search from './components/Search/search.js';
 import Listing from './components/Listing/listing.js';
 import Login from './components/Login/login.js';
+import SearchResult from './components/SearchResult/searchresult.js';
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
           <Route path="/search" element={<Search />} />
           <Route path="/listing" element={<Listing />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/searchresult" element={<SearchResult />} />
         </Routes>
       </div>
     </Router>

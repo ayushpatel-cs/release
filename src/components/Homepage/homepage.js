@@ -1,9 +1,15 @@
 // Homescreen.js
 import React from 'react';
 import './homepage.css';
+import { useNavigate } from 'react-router-dom';
 import homescreenimage from '../../images/homescreen.png'
 
 function Homepage() {
+  const navigate = useNavigate();
+
+  const handleSearch = () => {
+    navigate('/searchresult');
+  };
   return (
     <div className="homepage">
       
@@ -31,7 +37,7 @@ function Homepage() {
             <label>To</label>
             <input type="date" />
           </div>
-          <button className="search-button">
+          <button className="search-button" onClick={handleSearch}>
             <span role="img" aria-label="search icon">🔍</span>
           </button>
         </div>

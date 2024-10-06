@@ -1,0 +1,39 @@
+.container {
+    --primary-bg: #ffffff;
+    --secondary-bg: #f8f8f8;
+    --text-primary: #333333;
+    --text-secondary: #666666;
+    --accent-color: #4a90e2;
+    --border-color: #e0e0e0;
+    --button-bg: #4a90e2;
+    --button-text: #ffffff;
+  }
+  
+  .primaryBg {
+    background-color: var(--primary-bg);
+  }
+  
+  .secondaryBg {
+    background-color: var(--secondary-bg);
+  }
+  
+  .textPrimary {
+    color: var(--text-primary);
+  }
+  
+  .textSecondary {
+    color: var(--text-secondary);
+  }
+  
+  .accentColor {
+    color: var(--accent-color);
+  }
+  
+  .borderColor {
+    border-color: var(--border-color);
+  }
+  
+  .button {
+    background-color: var(--button-bg);
+    color: var(--button-text);
+  }
