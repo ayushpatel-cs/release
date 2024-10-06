@@ -1,54 +1,67 @@
 import React from 'react';
-import { Microwave, Baby, Cigarette, PawPrint, Music } from 'lucide-react';
-import styles from './searchresult.css';
+import { Search, Menu, User } from 'lucide-react';
+import './searchresult.css';
 
-const ListingPage = () => {
+const ReLeasePage = () => {
+  const listings = [
+    { id: 1, name: 'The Hub Atlanta', details: '4 beds 2 bath · Apartment · Floor 2', amenities: 'Wifi · Kitchen · Pool · Study Areas', lease: 'Summer Lease May-August', price: 1070, image: 'hub.png' },
+    { id: 2, name: 'University House Atlanta', details: '4 beds 4 baths · Apartment · Floor 8', amenities: 'Wifi · Kitchen · Free Parking · Pool · Gym', lease: 'Summer Lease May-August', price: 1000, image: 'uhouse.png' },
+    { id: 3, name: 'The Standard', details: '4 beds 4 baths · Apartment · Floor 12', amenities: 'Wifi · Kitchen · Gym · In-unit laundry', lease: 'Fall Lease September-January', price: 1250, image: 'standard.png'},
+  ];
+
   return (
-    <div className={`${styles.container} ${styles.primaryBg} max-w-4xl mx-auto p-4`}>
-      <h1 className={`${styles.textPrimary} text-3xl font-bold mb-4`}>The Mark Atlanta</h1>
-      
-      <div className="grid grid-cols-3 gap-2 mb-4">
-        {/* Placeholder for image gallery */}
-        {[1, 2, 3, 4, 5, 6].map((i) => (
-          <div key={i} className={`${styles.secondaryBg} h-40 rounded-lg`}></div>
-        ))}
-      </div>
-      
-      <div className="mb-4">
-        <h2 className={`${styles.textPrimary} text-xl font-semibold mb-2`}>Location</h2>
-        <div className={`${styles.secondaryBg} h-64 rounded-lg mb-2`}></div>
-        <p className={`${styles.textPrimary} font-semibold`}>Midtown Atlanta, Georgia</p>
-        <p className={`${styles.textSecondary} text-sm`}>
-          Midtown is a busy commercial area and a vibrant arts hub. The High Museum of Art shows world-renowned works in a striking modern building, while Margaret Mitchell House offers tours of the former home of the "Gone With the Wind" author. Peachtree Street is a hotspot for comedy, bars and big-name shops, with eating options ranging from street food to fine dining. Large, leafy Piedmont Park offers walking trails.
-        </p>
-      </div>
-      
-      <div className="mb-4">
-        <h2 className={`${styles.textPrimary} text-xl font-semibold mb-2`}>Things to know</h2>
-        <ul className="space-y-1">
-          <li className={`${styles.textSecondary} flex items-center`}><Microwave className="mr-2 h-4 w-4" /> Microwave included</li>
-          <li className={`${styles.textSecondary} flex items-center`}><Baby className="mr-2 h-4 w-4" /> Not suitable for infants (under 2 years)</li>
-          <li className={`${styles.textSecondary} flex items-center`}><Cigarette className="mr-2 h-4 w-4" /> No smoking</li>
-          <li className={`${styles.textSecondary} flex items-center`}><PawPrint className="mr-2 h-4 w-4" /> No pets</li>
-          <li className={`${styles.textSecondary} flex items-center`}><Music className="mr-2 h-4 w-4" /> No parties or events</li>
-        </ul>
-      </div>
-      
-      <div>
-        <h2 className={`${styles.textPrimary} text-xl font-semibold mb-2`}>Information About Lister</h2>
-        <div className="flex items-center">
-          <div className={`${styles.secondaryBg} w-12 h-12 rounded-full mr-4`}></div>
-          <div>
-            <p className={`${styles.textPrimary} font-semibold`}>Abhinav Govindaraju</p>
-            <p className={`${styles.textSecondary} text-sm`}>5.0 • 20 Reviews</p>
+    <div>
+      <header className="header">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h1 className="logo">ReLease</h1>
+          <div className="search-bar">
+            <input type="text" placeholder="Atlanta" className="search-input" />
+            <span style={{ margin: '0 0.5rem' }}>Feb 19-26</span>
+            <Search size={20} />
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <button>Price</button>
+            <button>Filters</button>
+            <Menu size={24} />
+            <User size={24} />
           </div>
         </div>
-        <p className={`${styles.textSecondary} mt-2 text-sm`}>Abhinav Govindaraju is a student at Georgia Institute of Technology</p>
-      </div>
-      
-      <button className={`${styles.button} mt-4 px-4 py-2 rounded`}>Book Now</button>
+      </header>
+
+      <main className="main-container">
+        <div className="map-container">
+          <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666' }}>
+            Map Placeholder
+          </div>
+        </div>
+        <div className="listings-container">
+          <h2 style={{ fontSize: '1.125rem', fontWeight: '600', marginBottom: '1rem' }}>200+ stays in Atlanta</h2>
+          {listings.map((listing) => (
+            <div key={listing.id} className="listing-card">
+              <div style={{ display: 'flex' }}>
+                <div className="listing-image">
+                  <div style={{ height: '8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666' }}>
+                  <img
+                src={`/images/${listing.image}`}
+                alt={listing.name}
+                style={{ height: '8rem', width: '12rem', objectFit: 'cover', borderRadius: '8px' }}
+              />
+                  </div>
+                </div>
+                <div className="listing-details">
+                  <h3 style={{ fontWeight: '600' }}>{listing.name}</h3>
+                  <p style={{ fontSize: '0.875rem', color: '#666' }}>{listing.details}</p>
+                  <p style={{ fontSize: '0.875rem', color: '#666' }}>{listing.amenities}</p>
+                  <p style={{ fontSize: '0.875rem', color: '#666' }}>{listing.lease}</p>
+                  <p style={{ fontWeight: '600', marginTop: '0.5rem' }}>${listing.price} /month</p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </main>
     </div>
   );
 };
 
-export default ListingPage;
+export default ReLeasePage;
