@@ -1,14 +1,13 @@
 // Homescreen.js
 import React from 'react';
 import './homepage.css';
-import homescreenimage from '../../images/homescreen.png'
+import homescreenimage from '../../images/homepage.png'
 
 function Homepage() {
   return (
     <div className="homepage">
       
       <div className="hero">
-        <h1 className="hero-title">ReLease</h1>
         <img
           className="hero-image"
           src={homescreenimage}  
@@ -17,7 +16,6 @@ function Homepage() {
         <h2 className="hero-subtitle">
           Looking for a place to stay? We've got you covered!
         </h2>
-        <button className="cta-button">Explore Now</button>
         <div className="search-bar">
           <div className="search-input">
             <label>Location</label>
