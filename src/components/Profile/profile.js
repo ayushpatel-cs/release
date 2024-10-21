@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
-import { Camera, Upload, Mail, Phone, MapPin, Star, Briefcase, GraduationCap, Heart } from 'lucide-react'
+import { Camera, Upload, Mail, Phone, MapPin, Star, Briefcase, GraduationCap, Heart, Plus } from 'lucide-react'
 import homepageImage from '../../images/homepage.png'
+import apartment1Image from '../../images/apartment_1.jpg'
 import apartment2Image from '../../images/apartment_2.webp'
 import apartment3Image from '../../images/apartment_3.jpg'
 import condo1Image from '../../images/condo_1.jpg'
@@ -23,25 +24,45 @@ const user = {
 }
 
 const listings = [
-  { id: 1, image: homepageImage, title: 'Cozy Downtown Apartment', location: '123 Main St, Atlanta, GA', price: '$1000/month', rating: 4.8, reviews: 15 },
+  { id: 1, image: apartment1Image, title: 'Cozy Downtown Apartment', location: '123 Main St, Atlanta, GA', price: '$1000/month', rating: 4.8, reviews: 15 },
   { id: 2, image: apartment2Image, title: 'Spacious Suburban House', location: '456 Oak Ave, Atlanta, GA', price: '$1500/month', rating: 4.5, reviews: 8 },
 ]
 
 const stays = [
-  { id: 1, image: apartment3Image, title: 'Modern Loft', location: '789 Pine Rd, Atlanta, GA', daysUntilStart: 5, duration: '3 months', host: 'Jane Smith' },
-  { id: 2, image: condo1Image, title: 'Beachfront Condo', location: '101 Elm St, Miami, FL', daysUntilStart: 12, duration: '6 months', host: 'Mike Johnson' },
+  { id: 1, image: condo1Image, title: 'Modern Loft', location: '789 Pine Rd, Atlanta, GA', daysUntilStart: 5, duration: '3 months', host: 'Jane Smith' },
+  { id: 2, image: apartment3Image, title: 'Beachfront Condo', location: '101 Elm St, Miami, FL', daysUntilStart: 12, duration: '6 months', host: 'Mike Johnson' },
 ]
 
 export default function UserDashboard() {
-  const [images, setImages] = useState([])
   const [activeTab, setActiveTab] = useState('profile')
+  const [showAddListingForm, setShowAddListingForm] = useState(false)
+  const [newListing, setNewListing] = useState({
+    title: '',
+    location: '',
+    price: '',
+    image: null,
+  })
 
   const handleImageUpload = (event) => {
-    const files = event.target.files
-    if (files) {
-      const newImages = Array.from(files).map(file => URL.createObjectURL(file))
-      setImages(prevImages => [...prevImages, ...newImages])
+    const file = event.target.files[0]
+    if (file) {
+      setNewListing(prev => ({ ...prev, image: URL.createObjectURL(file) }))
     }
+  }
+
+  const handleInputChange = (event) => {
+    const { name, value } = event.target
+    setNewListing(prev => ({ ...prev, [name]: value }))
+  }
+
+  const handleAddListing = (event) => {
+    event.preventDefault()
+    // Here you would typically send the new listing data to your backend
+    console.log('New listing:', newListing)
+    // For this example, we'll just close the form
+    setShowAddListingForm(false)
+    // Reset the form
+    setNewListing({ title: '', location: '', price: '', image: null })
   }
 
   const ProfileTab = () => (
@@ -109,66 +130,101 @@ export default function UserDashboard() {
 
   const ListingsTab = () => (
     <div className="space-y-6">
-      <div className="bg-white p-4 rounded-lg shadow">
-        <h3 className="text-xl font-bold mb-2">Add Images</h3>
-        <div className="grid grid-cols-3 gap-4 mb-4">
-          {images.map((image, index) => (
-            <img key={index} src={image} alt={`Uploaded ${index + 1}`} className="w-full h-32 object-cover rounded-lg" />
-          ))}
-          <label className="w-full h-32 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center cursor-pointer hover:bg-gray-50 transition-colors">
-            <Camera className="text-gray-400 mr-2" size={24} />
-            <span className="text-gray-500">Add Photo</span>
-            <input type="file" className="hidden" onChange={handleImageUpload} multiple accept="image/*" />
-          </label>
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">Your Listings</h2>
+        <button
+          onClick={() => setShowAddListingForm(true)}
+          className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg flex items-center transition duration-300"
+        >
+          <Plus className="mr-2" size={20} />
+          Add Listing
+        </button>
+      </div>
+
+      {showAddListingForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h3 className="text-xl font-bold mb-4">Add New Listing</h3>
+            <form onSubmit={handleAddListing} className="space-y-4">
+              <div>
+                <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                <input
+                  type="text"
+                  id="title"
+                  name="title"
+                  value={newListing.title}
+                  onChange={handleInputChange}
+                  className="w-full p-2 border border-gray-300 rounded-md"
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                <input
+                  type="text"
+                  id="location"
+                  name="location"
+                  value={newListing.location}
+                  onChange={handleInputChange}
+                  className="w-full p-2 border border-gray-300 rounded-md"
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="price" className="block text-sm font-medium text-gray-700 mb-1">Price</label>
+                <input
+                  type="text"
+                  id="price"
+                  name="price"
+                  value={newListing.price}
+                  onChange={handleInputChange}
+                  className="w-full p-2 border border-gray-300 rounded-md"
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="image" className="block text-sm font-medium text-gray-700 mb-1">Image</label>
+                <input
+                  type="file"
+                  id="image"
+                  name="image"
+                  onChange={handleImageUpload}
+                  className="w-full p-2 border border-gray-300 rounded-md"
+                  accept="image/*"
+                />
+              </div>
+              <div className="flex justify-end space-x-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAddListingForm(false)}
+                  className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+                >
+                  Add Listing
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
-      </div>
+      )}
 
-      <div className="bg-white p-4 rounded-lg shadow">
-        <h3 className="text-xl font-bold mb-2">Upload Lease Agreement</h3>
-        <label className="flex items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
-          <Upload className="text-blue-500 mr-2" size={24} />
-          <span className="text-blue-500 font-medium">Upload Lease Agreement</span>
-          <input type="file" className="hidden" accept=".pdf,.doc,.docx" />
-        </label>
-      </div>
-
-      <div className="bg-white p-4 rounded-lg shadow">
-        <h3 className="text-xl font-bold mb-2">Property Details</h3>
-        <div className="space-y-4">
-          <div>
-            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">Name</label>
-            <input id="name" className="w-full p-2 border border-gray-300 rounded-md" placeholder="e.g. Austin Rental" />
-          </div>
-          <div>
-            <label htmlFor="price" className="block text-sm font-medium text-gray-700 mb-1">Price</label>
-            <input id="price" className="w-full p-2 border border-gray-300 rounded-md" placeholder="e.g. $1000 / month" />
-          </div>
-          <div>
-            <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-1">Location</label>
-            <input id="location" className="w-full p-2 border border-gray-300 rounded-md" placeholder="e.g. University House - 800 Spring St NW, Atlanta, GA" />
-          </div>
-          <div>
-            <label htmlFor="season" className="block text-sm font-medium text-gray-700 mb-1">Season</label>
-            <input id="season" className="w-full p-2 border border-gray-300 rounded-md" placeholder="e.g. Summer" />
-          </div>
-          <div>
-            <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-1">Additional Notes</label>
-            <textarea id="notes" className="w-full p-2 border border-gray-300 rounded-md" placeholder="e.g. No pets, parking included" rows="3"></textarea>
-          </div>
-          <button className="w-full bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 transition-colors">Post Listing</button>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="space-y-4">
         {listings.map(listing => (
-          <div key={listing.id} className="bg-white p-4 rounded-lg shadow">
-            <img src={listing.image} alt={listing.title} className="w-full h-48 object-cover rounded-lg mb-4" />
-            <h3 className="font-semibold text-lg mb-1">{listing.title}</h3>
-            <p className="text-gray-600 mb-2">{listing.location}</p>
-            <p className="font-bold text-lg mb-2">{listing.price}</p>
-            <div className="flex items-center">
-              <Star className="text-yellow-400 mr-1" size={16} />
-              <span>{listing.rating} ({listing.reviews} reviews)</span>
+          <div key={listing.id} className="bg-white p-4 rounded-lg shadow flex">
+            <img src={listing.image} alt={listing.title} className="w-32 h-32 object-cover rounded-lg mr-4" />
+            <div>
+              <h3 className="font-semibold text-lg mb-1">{listing.title}</h3>
+              <p className="text-gray-600 mb-1">{listing.location}</p>
+              <p className="font-bold mb-1">{listing.price}</p>
+              <div className="flex items-center">
+                <Star className="text-yellow-400 mr-1" size={16} />
+                <span>{listing.rating} ({listing.reviews} reviews)</span>
+              </div>
             </div>
           </div>
         ))}
