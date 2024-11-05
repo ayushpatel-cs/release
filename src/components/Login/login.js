@@ -1,4 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 
 const styles = {
   loginPage: {
@@ -58,21 +60,41 @@ const styles = {
 };
 
 function Login() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const { login } = useAuth();
+  const navigate = useNavigate();
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await login(email, password);
+      navigate('/profile');
+    } catch (err) {
+      setError(err.response?.data?.error || 'Login failed');
+    }
+  };
   return (
     <div style={styles.loginPage}>
       <div style={styles.loginContainer}>
         <h1 style={styles.title}>ReLease</h1>
         <p style={styles.subtitle}>Find your perfect sub lease today!</p>
-        <form style={styles.form}>
+        {error && <p style={{ color: 'red' }}>{error}</p>}
+        <form style={styles.form} onSubmit={handleSubmit}>
           <input 
             style={styles.input} 
             type="email" 
-            placeholder="anaygupta@my.unt.edu" 
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="Email" 
           />
           <input 
             style={styles.input} 
             type="password" 
-            placeholder="••••••••" 
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Password" 
           />
           <button style={styles.button} type="submit">
             LOGIN
