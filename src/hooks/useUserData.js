@@ -8,29 +8,31 @@ export const useUserData = (userId) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        const [userResponse, listingsResponse, bidsResponse] = await Promise.all([
-          api.get(`/users/${userId}`),
-          api.get(`/users/${userId}/properties`),
-          api.get(`/users/${userId}/bids`)
-        ]);
-
-        setUserData(userResponse.data);
-        setListings(listingsResponse.data);
-        setBids(bidsResponse.data);
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (userId) {
-      fetchUserData();
+  const refreshData = async () => {
+    if (!userId) {
+      setLoading(false);
+      return;
     }
+    try {
+      const [userResponse, listingsResponse, bidsResponse] = await Promise.all([
+        api.get(`/users/${userId}`),
+        api.get(`/users/${userId}/properties`),
+        api.get(`/users/${userId}/bids`)
+      ]);
+
+      setUserData(userResponse.data);
+      setListings(listingsResponse.data);
+      setBids(bidsResponse.data);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    refreshData();
   }, [userId]);
 
-  return { userData, listings, bids, loading, error };
+  return { userData, listings, bids, loading, error, refreshData };
 };
