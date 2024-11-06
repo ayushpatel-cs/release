@@ -6,6 +6,9 @@ import apartment2Image from '../../images/apartment_2.webp'
 import apartment3Image from '../../images/apartment_3.jpg'
 import condo1Image from '../../images/condo_1.jpg'
 import johnDoeImage from '../../images/john_doe.jpeg'
+import { useAuth } from '../../contexts/AuthContext';
+import { useUserData } from '../../hooks/useUserData';
+import api from '../../utils/api';
 
 // Mock data
 const user = {
@@ -36,12 +39,26 @@ const stays = [
 export default function UserDashboard() {
   const [activeTab, setActiveTab] = useState('profile')
   const [showAddListingForm, setShowAddListingForm] = useState(false)
+  const { user } = useAuth();
+  const { userData, listings, bids, loading, error } = useUserData(user?.id);
   const [newListing, setNewListing] = useState({
     title: '',
     location: '',
     price: '',
     image: null,
-  })
+  });
+
+  if (loading) {
+    return <div className="min-h-screen bg-[#FFF8F0] flex items-center justify-center">
+      <div className="text-xl">Loading...</div>
+    </div>;
+  }
+
+  if (error) {
+    return <div className="min-h-screen bg-[#FFF8F0] flex items-center justify-center">
+      <div className="text-xl text-red-500">Error: {error}</div>
+    </div>;
+  }
 
   const handleImageUpload = (event) => {
     const file = event.target.files[0]
@@ -55,15 +72,50 @@ export default function UserDashboard() {
     setNewListing(prev => ({ ...prev, [name]: value }))
   }
 
-  const handleAddListing = (event) => {
-    event.preventDefault()
-    // Here you would typically send the new listing data to your backend
-    console.log('New listing:', newListing)
-    // For this example, we'll just close the form
-    setShowAddListingForm(false)
-    // Reset the form
-    setNewListing({ title: '', location: '', price: '', image: null })
-  }
+  const handleAddListing = async (event) => {
+    event.preventDefault();
+    
+    try {
+      const formData = new FormData();
+      
+      // Add text fields to formData
+      formData.append('title', newListing.title);
+      formData.append('description', newListing.description || '');
+      formData.append('address', newListing.location);
+      formData.append('min_price', parseFloat(newListing.price));
+      
+      // Add dates (you might want to add date inputs to your form)
+      const today = new Date();
+      formData.append('start_date', today.toISOString());
+      formData.append('end_date', new Date(today.setMonth(today.getMonth() + 3)).toISOString());
+      
+      // Add the image file
+      if (newListing.imageFile) {
+        formData.append('images', newListing.imageFile);
+      }
+      
+      const response = await api.post('/properties', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      
+      setShowAddListingForm(false);
+      setNewListing({
+        title: '',
+        location: '',
+        price: '',
+        description: '',
+        image: null,
+        imageFile: null
+      });
+      
+      // Refresh listings using your useUserData hook
+      // You might want to add a refresh function to your hook
+      window.location.reload();
+    } catch (error) {
+      console.error('Error adding listing:', error);
+      alert('Failed to create listing: ' + (error.response?.data?.error || error.message));
+    }
+  };
 
   const ProfileTab = () => (
     <div className="space-y-6">
@@ -159,7 +211,18 @@ export default function UserDashboard() {
                 />
               </div>
               <div>
-                <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <textarea
+                  id="description"
+                  name="description"
+                  value={newListing.description}
+                  onChange={handleInputChange}
+                  className="w-full p-2 border border-gray-300 rounded-md"
+                  rows="3"
+                />
+              </div>
+              <div>
+                <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-1">Address</label>
                 <input
                   type="text"
                   id="location"
@@ -171,19 +234,21 @@ export default function UserDashboard() {
                 />
               </div>
               <div>
-                <label htmlFor="price" className="block text-sm font-medium text-gray-700 mb-1">Price</label>
+                <label htmlFor="price" className="block text-sm font-medium text-gray-700 mb-1">Minimum Price</label>
                 <input
-                  type="text"
+                  type="number"
                   id="price"
                   name="price"
                   value={newListing.price}
                   onChange={handleInputChange}
                   className="w-full p-2 border border-gray-300 rounded-md"
+                  min="0"
+                  step="0.01"
                   required
                 />
               </div>
               <div>
-                <label htmlFor="image" className="block text-sm font-medium text-gray-700 mb-1">Image</label>
+                <label htmlFor="image" className="block text-sm font-medium text-gray-700 mb-1">Images</label>
                 <input
                   type="file"
                   id="image"
@@ -191,7 +256,15 @@ export default function UserDashboard() {
                   onChange={handleImageUpload}
                   className="w-full p-2 border border-gray-300 rounded-md"
                   accept="image/*"
+                  required
                 />
+                {newListing.image && (
+                  <img 
+                    src={newListing.image} 
+                    alt="Preview" 
+                    className="mt-2 h-32 w-32 object-cover rounded-md"
+                  />
+                )}
               </div>
               <div className="flex justify-end space-x-2">
                 <button
