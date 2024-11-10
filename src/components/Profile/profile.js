@@ -3,6 +3,7 @@ import { Camera, Upload, Mail, Phone, MapPin, Star, Briefcase, GraduationCap, He
 import { useAuth } from '../../contexts/AuthContext';
 import { useUserData } from '../../hooks/useUserData';
 import api from '../../utils/api';
+import AddressAutocomplete from '../Common/AddressAutocomplete';
 
 // Move ProfileTab outside of UserDashboard
 const ProfileTab = ({ userData, onUpdateProfile, refreshData }) => {
@@ -314,6 +315,7 @@ const ListingsTab = ({
   showAddListingForm, 
   setShowAddListingForm, 
   newListing, 
+  setNewListing,
   handleInputChange, 
   handleImageUpload, 
   handleAddListing 
@@ -334,12 +336,14 @@ const ListingsTab = ({
       </div>
 
       {showAddListingForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <h3 className="text-xl font-bold mb-4">Add New Listing</h3>
             <form onSubmit={handleAddListing} className="space-y-4">
               <div>
-                <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
+                  Title
+                </label>
                 <input
                   type="text"
                   id="title"
@@ -350,8 +354,11 @@ const ListingsTab = ({
                   required
                 />
               </div>
+              
               <div>
-                <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
+                  Description
+                </label>
                 <textarea
                   id="description"
                   name="description"
@@ -361,41 +368,54 @@ const ListingsTab = ({
                   rows="3"
                 />
               </div>
+
               <div>
-                <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-1">Address</label>
-                <input
-                  type="text"
-                  id="location"
-                  name="location"
-                  value={newListing.location}
-                  onChange={handleInputChange}
-                  className="w-full p-2 border border-gray-300 rounded-md"
-                  required
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Address
+                </label>
+                <AddressAutocomplete
+                  onAddressSelect={(addressDetails) => {
+                    setNewListing(prev => ({
+                      ...prev,
+                      address_details: addressDetails,
+                      place_id: addressDetails.place_id,
+                      location: addressDetails.formatted_address
+                    }));
+                  }}
+                  placeholder="Enter property address"
                 />
               </div>
+
               <div>
-                <label htmlFor="price" className="block text-sm font-medium text-gray-700 mb-1">Minimum Price</label>
-                <input
-                  type="number"
-                  id="price"
-                  name="price"
-                  value={newListing.price}
-                  onChange={handleInputChange}
-                  className="w-full p-2 border border-gray-300 rounded-md"
-                  min="0"
-                  step="0.01"
-                  required
-                />
+                <label htmlFor="price" className="block text-sm font-medium text-gray-700 mb-1">
+                  Minimum Price
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+                  <input
+                    type="number"
+                    id="price"
+                    name="price"
+                    value={newListing.price}
+                    onChange={handleInputChange}
+                    className="w-full pl-8 p-2 border border-gray-300 rounded-md"
+                    min="0"
+                    step="0.01"
+                    required
+                  />
+                </div>
               </div>
+
               <div>
-                <label htmlFor="image" className="block text-sm font-medium text-gray-700 mb-1">Images</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Images
+                </label>
                 <input
                   type="file"
-                  id="image"
-                  name="image"
                   onChange={handleImageUpload}
                   className="w-full p-2 border border-gray-300 rounded-md"
                   accept="image/*"
+                  multiple
                   required
                 />
                 {newListing.image && (
@@ -406,6 +426,7 @@ const ListingsTab = ({
                   />
                 )}
               </div>
+
               <div className="flex justify-end space-x-2">
                 <button
                   type="button"
@@ -539,18 +560,10 @@ export default function UserDashboard() {
     try {
       const formData = new FormData();
       
-      // Log the form data being sent
-      console.log('New listing data:', {
-        title: newListing.title,
-        description: newListing.description,
-        location: newListing.location,
-        price: newListing.price,
-        imageFile: newListing.imageFile
-      });
-
       formData.append('title', newListing.title);
       formData.append('description', newListing.description);
-      formData.append('address', newListing.location);
+      formData.append('place_id', newListing.place_id);
+      formData.append('address_details', JSON.stringify(newListing.address_details));
       formData.append('min_price', newListing.price);
       
       const today = new Date();
@@ -574,7 +587,9 @@ export default function UserDashboard() {
         price: '',
         description: '',
         image: null,
-        imageFile: null
+        imageFile: null,
+        place_id: null,
+        address_details: null
       });
       
       await refreshData();
@@ -696,6 +711,7 @@ export default function UserDashboard() {
             showAddListingForm={showAddListingForm}
             setShowAddListingForm={setShowAddListingForm}
             newListing={newListing}
+            setNewListing={setNewListing}
             handleInputChange={handleInputChange}
             handleImageUpload={handleImageUpload}
             handleAddListing={handleAddListing}

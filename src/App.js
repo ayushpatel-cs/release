@@ -6,6 +6,7 @@ import Header from './components/Header/header.js';
 import Homepage from './components/Homepage/homepage.js';
 import Search from './components/Search/search.js';
 import Listing from './components/Listing/listing.js';
+import ListingDetail from './components/Listing/ListingDetail';
 import Login from './components/Login/login.js';
 import Profile from './components/Profile/profile.js';
 
@@ -23,6 +24,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Homepage />} />
           <Route path="/search" element={<Search />} />
+          <Route path="/listing/:id" element={<ListingDetail />} />
           <Route path="/listing" element={<Listing />} />
           <Route path="/login" element={<Login />} />
           <Route path="/profile" element={
