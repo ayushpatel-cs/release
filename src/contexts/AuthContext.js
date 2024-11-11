@@ -21,10 +21,24 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = async (email, password) => {
-    const response = await api.post('/auth/login', { email, password });
-    localStorage.setItem('token', response.data.token);
-    setUser(response.data.user);
-    return response.data;
+    try {
+      const response = await api.post('/auth/login', { email, password });
+      const { token, user } = response.data;
+      
+      console.log('Login successful:', { 
+        userId: user.id,
+        tokenPreview: token.slice(0, 10) + '...'
+      });
+
+      localStorage.setItem('token', token);
+      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      
+      setUser(user);
+      return user;
+    } catch (error) {
+      console.error('Login failed:', error.response?.data || error.message);
+      throw error;
+    }
   };
 
   const logout = () => {

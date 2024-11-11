@@ -20,6 +20,7 @@ export default function ListingDetail() {
             const response = await api.get(`/properties/${id}`);
             setListing(response.data);
             setBidAmount(response.data.min_price?.toString() || '');
+            console.log(`Fetched Listing - ID: ${id}, Min Price: ${response.data.min_price}`);
           } catch (error) {
             console.error('Error fetching listing:', error);
             setError('Failed to fetch listing details');
