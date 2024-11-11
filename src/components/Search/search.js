@@ -1,70 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Search, Sliders, Wifi, UtensilsCrossed, Dumbbell, Pencil, DollarSign, Bed, Bath, Home, Info, MapPin, ArrowUpDown } from 'lucide-react';
 import homepageImage from '../../images/homepage.png';
 import apartment2Image from '../../images/apartment_2.webp';
 import apartment3Image from '../../images/apartment_3.jpg';
 import condo1Image from '../../images/condo_1.jpg';
+import api from '../../utils/api';
+import { Link } from 'react-router-dom';
+import GoogleMapComponent from './GoogleMap';
+import CitySearchAutocomplete from '../Common/CitySearchAutocomplete';
+import { useAuth } from '../../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 const images = [homepageImage, apartment2Image, apartment3Image, condo1Image];
-
-const initialListings = [
-  { 
-    id: 1, 
-    name: "Hub Atlanta", 
-    beds: 2, 
-    baths: 2, 
-    type: "Apartment", 
-    floor: 5, 
-    price: 1850, 
-    features: ["Wifi", "Kitchen", "Gym", "Study Areas"], 
-    coordinates: [33.7756, -84.3963], 
-    description: "Modern apartment complex with state-of-the-art amenities.",
-    image: images[0],
-    relevanceScore: 0.95
-  },
-  { 
-    id: 2, 
-    name: "The Mark Atlanta", 
-    beds: 1, 
-    baths: 1, 
-    type: "Studio", 
-    floor: 3, 
-    price: 1200, 
-    features: ["Wifi", "Kitchen", "Laundry"], 
-    coordinates: [33.7816, -84.3891], 
-    description: "Cozy studio apartments perfect for students and young professionals.",
-    image: images[1],
-    relevanceScore: 0.88
-  },
-  { 
-    id: 3, 
-    name: "Square on Fifth", 
-    beds: 3, 
-    baths: 2, 
-    type: "Condo", 
-    floor: 8, 
-    price: 2400, 
-    features: ["Wifi", "Kitchen", "Gym", "Pool"], 
-    coordinates: [33.7771, -84.3889], 
-    description: "Luxurious condos with panoramic views of the Atlanta skyline.",
-    image: images[2],
-    relevanceScore: 0.92
-  },
-  { 
-    id: 4, 
-    name: "University House", 
-    beds: 4, 
-    baths: 2, 
-    type: "House", 
-    floor: 2, 
-    price: 3000, 
-    features: ["Wifi", "Kitchen", "Backyard", "Parking"], 
-    coordinates: [33.7807, -84.3879], 
-    description: "Spacious house perfect for a group of students or young professionals.",
-    image: images[3],
-    relevanceScore: 0.85
-  }
-];
 
 const FilterButton = ({ icon: Icon, label, onClick, active }) => (
   <button 
@@ -98,52 +45,85 @@ const AuctionTable = ({ bids }) => (
   </div>
 );
 
-const ListingCard = ({ listing, onBid, onInfo }) => {
+const ListingCard = ({ listing, setModalState, navigate, user }) => {
   const [isAuctionOpen, setIsAuctionOpen] = useState(false);
+  const [bids, setBids] = useState([]);
 
-  // Generate mock bids
-  const mockBids = [
-    { id: 1, amount: listing.price, time: '2h ago' },
-    { id: 2, amount: Math.floor(listing.price * 0.95), time: '3h ago' },
-    { id: 3, amount: Math.floor(listing.price * 0.90), time: '5h ago' },
-    { id: 4, amount: Math.floor(listing.price * 0.85), time: '6h ago' },
-    { id: 5, amount: Math.floor(listing.price * 0.80), time: '8h ago' },
-  ].sort((a, b) => b.amount - a.amount);
+  const fetchBids = async () => {
+    try {
+      const response = await api.get(`/properties/${listing.id}/bids`);
+      setBids(response.data.bids);
+    } catch (error) {
+      console.error('Error fetching bids:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (isAuctionOpen) {
+      fetchBids();
+    }
+  }, [isAuctionOpen, listing.id]);
+
+  const handleBid = (listing) => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+    
+    setModalState(prev => ({ 
+      ...prev, 
+      bid: { isOpen: true, listing } 
+    }));
+  };
+
+  const handleInfo = () => {
+    setModalState(prev => ({ 
+      ...prev, 
+      info: { isOpen: true, listing } 
+    }));
+  };
 
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
-      <div className="relative h-48">
-        <img 
-          src={listing.image} 
-          alt={listing.name} 
-          className="w-full h-full object-cover"
-        />
-        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4">
-          <h3 className="text-xl font-semibold text-white">{listing.name}</h3>
+      <Link to={`/listings/${listing.id}`} className="block">
+        <div className="relative h-48">
+          <img 
+            src={listing.images?.[0]?.image_url || '/placeholder.jpg'} 
+            alt={listing.title} 
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4">
+            <h3 className="text-xl font-semibold text-white">{listing.title}</h3>
+          </div>
         </div>
-      </div>
+      </Link>
       <div className="p-6">
         <div className="flex justify-between items-start mb-2">
-          <p className="text-sm text-gray-600">{listing.beds} beds · {listing.baths} bath · {listing.type} · Floor {listing.floor}</p>
-          <button onClick={() => onInfo(listing)} className="text-blue-500 hover:text-blue-600">
+          <p className="text-sm text-gray-600">
+            {listing.bedrooms} beds · {listing.bathrooms} bath · {listing.type}
+          </p>
+          <button onClick={() => handleInfo(listing)} className="text-blue-500 hover:text-blue-600">
             <Info className="h-5 w-5" />
           </button>
         </div>
+        
+        {/* Add features/amenities display */}
         <div className="flex flex-wrap gap-3 mb-3">
-          {listing.features.map((feature, index) => (
+          {listing.amenities?.map((amenity, index) => (
             <span key={index} className="flex items-center text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
-              {feature === 'Wifi' && <Wifi className="h-4 w-4 mr-2" />}
-              {feature === 'Kitchen' && <UtensilsCrossed className="h-4 w-4 mr-2" />}
-              {feature === 'Gym' && <Dumbbell className="h-4 w-4 mr-2" />}
-              {feature === 'Study Areas' && <Pencil className="h-4 w-4 mr-2" />}
-              {feature}
+              {amenity}
             </span>
           ))}
         </div>
-        <p className="text-sm text-gray-600 mb-3">Fall Semester Lease</p>
-        <p className="font-semibold text-2xl text-[#6B7FF0] mb-4">${listing.price} <span className="font-normal text-gray-600 text-base">/month</span></p>
+
+        <p className="text-gray-600 mb-2">{listing.address}</p>
+        <p className="font-semibold text-2xl text-[#6B7FF0] mb-4">
+          ${listing.min_price?.toLocaleString()} <span className="font-normal text-gray-600 text-base">/month</span>
+        </p>
+
+        {/* Add bidding buttons */}
         <button 
-          onClick={() => onBid(listing)}
+          onClick={() => handleBid(listing)}
           className="w-full bg-[#6B7FF0] text-white py-2 rounded-lg hover:bg-[#5A6FE0] transition-colors mb-4"
         >
           Place Bid
@@ -154,10 +134,12 @@ const ListingCard = ({ listing, onBid, onInfo }) => {
         >
           {isAuctionOpen ? 'Close Auction' : 'View Auction'}
         </button>
+
+        {/* Show auction table when open */}
         {isAuctionOpen && (
           <div className="mt-4">
             <h4 className="text-lg font-semibold mb-2">Current Auction</h4>
-            <AuctionTable bids={mockBids} />
+            <AuctionTable bids={bids} />
           </div>
         )}
       </div>
@@ -165,58 +147,15 @@ const ListingCard = ({ listing, onBid, onInfo }) => {
   );
 };
 
-const MapView = ({ listings }) => {
-  // Function to convert coordinates to relative positions
-  const calculateMapPosition = (coordinates) => {
-    // Define the map boundaries (Georgia Tech area)
-    const mapBounds = {
-      north: 33.7856, // Max latitude
-      south: 33.7656, // Min latitude
-      east: -84.3763, // Max longitude
-      west: -84.4063  // Min longitude
-    };
-
-    // Calculate relative positions as percentages
-    const left = ((coordinates[1] - mapBounds.west) / (mapBounds.east - mapBounds.west) * 100);
-    const top = ((mapBounds.north - coordinates[0]) / (mapBounds.north - mapBounds.south) * 100);
-
-    // Ensure positions stay within bounds
-    return {
-      left: Math.max(0, Math.min(100, left)) + '%',
-      top: Math.max(0, Math.min(100, top)) + '%'
-    };
-  };
-
+const MapView = ({ listings, center, zoom, radius }) => {
   return (
     <div className="col-span-3 bg-white rounded-2xl h-[calc(100vh-240px)] overflow-hidden shadow-lg">
-      <div className="h-full relative">
-        <iframe
-          width="100%"
-          height="100%"
-          loading="lazy"
-          allowFullScreen
-          src={`https://www.google.com/maps/embed/v1/place?key=AIzaSyB-EEByU7chvVTZDIZyaaPzUwPhpFPPfB8&q=Georgia+Tech,Atlanta+GA&zoom=14`}
-        ></iframe>
-        <div className="absolute inset-0 pointer-events-none">
-          <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="50%" cy="50%" r="200" fill="#6B7FF0" fillOpacity="0.2" />
-          </svg>
-        </div>
-        {listings.map((listing) => {
-          const position = calculateMapPosition(listing.coordinates);
-          return (
-            <div key={listing.id} className="absolute" style={position}>
-              <div className="bg-white rounded-full px-3 py-1 shadow-lg flex items-center space-x-1">
-                <span className="text-[#6B7FF0] font-semibold text-sm">${listing.price}</span>
-                <svg className="h-4 w-4 text-[#6B7FF0]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+      <GoogleMapComponent 
+        listings={listings}
+        center={center}
+        zoom={zoom}
+        radius={radius}
+      />
     </div>
   );
 };
@@ -238,7 +177,9 @@ const Modal = ({ isOpen, onClose, title, children }) => {
 };
 
 export default function ImprovedSearchInterface() {
-  const [listings, setListings] = useState(initialListings);
+  const [listings, setListings] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
   const [filters, setFilters] = useState({
     priceRange: [0, 5000],
     bedrooms: 0,
@@ -256,110 +197,125 @@ export default function ImprovedSearchInterface() {
     amenities: { isOpen: false },
     radius: { isOpen: false }
   });
-  const [bidAmount, setBidAmount] = useState('');
   const [searchInput, setSearchInput] = useState('');
-  const [mapCenter, setMapCenter] = useState([33.7756, -84.3963]); // Georgia Tech coordinates
-  const [mapZoom, setMapZoom] = useState(13);
+  const [searchLocation, setSearchLocation] = useState('');
+  const [mapCenter, setMapCenter] = useState(null);
+  const mapRef = useRef(null);
+  const [bidAmount, setBidAmount] = useState('');
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
-  useEffect(() => {
-    applyFilters();
-  }, [filters, searchInput]);
+  const closeModal = (modalName) => {
+    setModalState(prev => ({ ...prev, [modalName]: { isOpen: false, listing: null } }));
+  };
 
-  const applyFilters = () => {
-    let filteredListings = initialListings.filter(listing => {
-      const distance = calculateDistance(mapCenter[0], mapCenter[1], listing.coordinates[0], listing.coordinates[1]);
-      return (
-        listing.price >= filters.priceRange[0] &&
-        listing.price <= filters.priceRange[1] &&
-        (filters.bedrooms === 0 || listing.beds >= filters.bedrooms) &&
-        (filters.bathrooms === 0 || listing.baths >= filters.bathrooms) &&
-        (filters.propertyType === '' || listing.type === filters.propertyType) &&
-        (filters.amenities.length === 0 || filters.amenities.every(amenity => listing.features.includes(amenity))) &&
-        distance <= filters.radius &&
-        listing.name.toLowerCase().includes(searchInput.toLowerCase())
-      );
-    });
-
-    // Apply sorting
-    switch (filters.sortBy) {
-      case 'price_asc':
-        filteredListings.sort((a, b) => a.price - b.price);
-        break;
-      case 'price_desc':
-        filteredListings.sort((a, 
-
- b) => b.price - a.price);
-        break;
-      case 'relevance':
-        filteredListings.sort((a, b) => b.relevanceScore - a.relevanceScore);
-        break;
-      default:
-        break;
+  const submitBid = async () => {
+    if (!user) {
+      navigate('/login');
+      return;
     }
 
-    setListings(filteredListings);
+    try {
+      const response = await api.post(`/bids/properties/${modalState.bid.listing.id}/bids`, {
+        amount: parseInt(bidAmount)
+      });
+      
+      // Show success message
+      alert('Bid placed successfully!');
+      
+      closeModal('bid');
+      setBidAmount('');
+      
+      // Refresh listings to show updated bid information
+      fetchListings();
+    } catch (error) {
+      console.error('Error placing bid:', error);
+      alert('Failed to place bid: ' + (error.response?.data?.error || error.message));
+    }
   };
 
-  const calculateDistance = (lat1, lon1, lat2, lon2) => {
-    const R = 3959; // Radius of the earth in miles
-    const dLat = deg2rad(lat2 - lat1);
-    const dLon = deg2rad(lon2 - lon1);
-    const a = 
-      Math.sin(dLat/2) * Math.sin(dLat/2) +
-      Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * 
-      Math.sin(dLon/2) * Math.sin(dLon/2)
-    ; 
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
-    const d = R * c; // Distance in miles
-    return d;
+  useEffect(() => {
+    // Get search params from URL
+    const params = new URLSearchParams(window.location.search);
+    const lat = params.get('lat');
+    const lng = params.get('lng');
+    const address = params.get('address');
+    
+    if (lat && lng) {
+      setMapCenter({ lat: parseFloat(lat), lng: parseFloat(lng) });
+      setSearchLocation(address || '');
+    }
+  }, []);
+
+  // Move fetchListings outside useEffect and make it reusable
+  const fetchListings = async () => {
+    if (!mapCenter) return;
+
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({
+        latitude: mapCenter.lat,
+        longitude: mapCenter.lng,
+        radius: filters.radius || 10
+      });
+
+      if (filters.priceRange[0] > 0) params.append('min_price', filters.priceRange[0]);
+      if (filters.priceRange[1] < 5000) params.append('max_price', filters.priceRange[1]);
+      if (filters.bedrooms > 0) params.append('bedrooms', filters.bedrooms);
+      if (filters.bathrooms > 0) params.append('bathrooms', filters.bathrooms);
+      if (filters.propertyType) params.append('type', filters.propertyType);
+
+      const response = await api.get(`/search?${params.toString()}`);
+      setListings(response.data.properties);
+      return response.data.properties; // Return the listings for reuse
+    } catch (error) {
+      console.error('Error fetching listings:', error);
+      setError('Failed to fetch listings');
+      return [];
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const deg2rad = (deg) => {
-    return deg * (Math.PI/180)
-  };
+  // Update the useEffect to use the fetchListings function
+  useEffect(() => {
+    fetchListings();
+  }, [mapCenter, filters]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleFilterChange = (filterName, value) => {
     setFilters(prevFilters => ({ ...prevFilters, [filterName]: value }));
   };
 
-  const handleBid = (listing) => {
-    setModalState(prev => ({ ...prev, bid: { isOpen: true, listing } }));
-    setBidAmount(listing.price.toString());
+  const handleSearchInputChange = (value) => {
+    setSearchInput(value);
+    setSearchLocation(value);
   };
+  
 
-  const handleInfo = (listing) => {
-    setModalState(prev => ({ ...prev, info: { isOpen: true, listing } }));
-  };
-
-  const submitBid = () => {
-    const bidValue = parseInt(bidAmount);
-    const listingPrice = modalState.bid.listing.price;
-    let chance;
-    if (bidValue >= listingPrice * 1.1) {
-      chance = 95;
-    } else if (bidValue >= listingPrice) {
-      chance = 70 + (bidValue - listingPrice) / (listingPrice * 0.1) * 25;
-    } else {
-      chance = Math.max(0, 70 - (listingPrice - bidValue) / (listingPrice * 0.1) * 70);
+  const handleLocationSelect = (data) => {
+    setMapCenter({
+      lat: data.latitude,
+      lng: data.longitude
+    });
+    
+    // Use the viewport bounds from Google Places API for better search results
+    if (data.viewport && mapRef.current) {
+      const bounds = new window.google.maps.LatLngBounds(
+        new window.google.maps.LatLng(data.viewport.south, data.viewport.west),
+        new window.google.maps.LatLng(data.viewport.north, data.viewport.east)
+      );
+      mapRef.current.fitBounds(bounds);
     }
-    console.log(`Bid of $${bidAmount} placed on ${modalState.bid.listing.name} with ${chance.toFixed(2)}% chance of success`);
-    setModalState(prev => ({ ...prev, bid: { isOpen: false, listing: null } }));
-  };
-
-  const closeModal = (modalName) => {
-    setModalState(prev => ({ ...prev, [modalName]: { isOpen: false, listing: null } }));
   };
 
   return (
     <div className="max-w-[1400px] mx-auto p-6 font-sans bg-[#FFF8F0] min-h-screen">
       <div className="flex items-center space-x-2 mb-8">
         <div className="flex-grow flex items-center space-x-2 bg-white rounded-full p-2 shadow-md border border-gray-200">
-          <input 
-            type="text" 
-            placeholder="Search by property name" 
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            className="flex-grow border-none bg-transparent text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-0 text-lg px-4"
+          <CitySearchAutocomplete
+            onLocationSelect={handleLocationSelect}
+            placeholder="Enter a location..."
+            initialValue={searchLocation}
           />
           <div className="w-px h-8 bg-gray-200"></div>
           <input 
@@ -425,13 +381,34 @@ export default function ImprovedSearchInterface() {
         
       <div className="grid grid-cols-5 gap-8">
         <div className="col-span-3 bg-white rounded-2xl h-[calc(100vh-240px)] overflow-hidden shadow-lg">
-          <MapView listings={listings} center={mapCenter} zoom={mapZoom} radius={filters.radius} />
+          <MapView 
+            listings={listings}
+            center={mapCenter || { lat: 39.8283, lng: -98.5795 }}
+            zoom={mapCenter ? 13 : 4}
+            radius={filters.radius}
+          />
         </div>
         <div className="col-span-2 space-y-6 overflow-y-auto h-[calc(100vh-240px)] pr-4">
-          <div className="text-xl text-gray-800 font-semibold">{listings.length} stays near Georgia Tech</div>
-          {listings.map((listing) => (
-            <ListingCard key={listing.id} listing={listing} onBid={handleBid} onInfo={handleInfo} />
-          ))}
+          {loading ? (
+            <div className="text-center py-8">Loading...</div>
+          ) : error ? (
+            <div className="text-center py-8 text-red-500">{error}</div>
+          ) : (
+            <>
+              <div className="text-xl text-gray-800 font-semibold">
+                {listings.length} properties found
+              </div>
+              {listings.map((listing) => (
+                <ListingCard 
+                  key={listing.id} 
+                  listing={listing}
+                  setModalState={setModalState}
+                  navigate={navigate}
+                  user={user}
+                />
+              ))}
+            </>
+          )}
         </div>
       </div>
 
@@ -440,7 +417,7 @@ export default function ImprovedSearchInterface() {
         onClose={() => closeModal('bid')}
         title="Place a Bid"
       >
-        <p className="mb-4">Current price: ${modalState.bid.listing?.price}/month</p>
+        <p className="mb-4">Current price: ${modalState.bid.listing?.min_price}/month</p>
         <div className="mb-4">
           <label className="block text-sm font-medium text-gray-700 mb-1">Your Bid:</label>
           <input
@@ -453,10 +430,18 @@ export default function ImprovedSearchInterface() {
         <div className="mb-4">
           <label className="block text-sm font-medium text-gray-700 mb-1">Bid Competitiveness:</label>
           <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
-            <div className="bg-blue-600 h-2.5 rounded-full" style={{width: `${Math.min(100, (parseInt(bidAmount) / modalState.bid.listing?.price) * 100)}%`}}></div>
+            <div 
+              className="bg-blue-600 h-2.5 rounded-full" 
+              style={{
+                width: `${Math.min(100, (parseInt(bidAmount) / modalState.bid.listing?.min_price) * 100)}%`
+              }}
+            />
           </div>
         </div>
-        <button onClick={submitBid} className="w-full px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+        <button 
+          onClick={submitBid} 
+          className="w-full px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+        >
           Submit Bid
         </button>
       </Modal>

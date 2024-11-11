@@ -1,22 +1,30 @@
 // components/Listing.js
 import React from 'react';
 import './listing.css';
+import { Link } from 'react-router-dom';
 
-function Listing() {
+function Listing({ listing }) {
   return (
-    <div className="listing-page">
+    <Link to={`/listings/${listing.id}`} className="listing-card">
       <div className="listing-details">
-        <h3>The Mark Atlanta</h3>
+        <h3>{listing.title}</h3>
         <div className="listing-images">
-          <img src="image1.jpg" alt="Listing" />
-          {/* Add more images as needed */}
+          {listing.images?.[0] && (
+            <img 
+              src={listing.images[0].image_url} 
+              alt={listing.title}
+              onError={(e) => {
+                e.target.src = '/placeholder.jpg';
+              }}
+            />
+          )}
         </div>
         <div className="location">
-          <h4>Location</h4>
-          {/* Map integration */}
+          <p>{listing.address}</p>
+          <p className="price">${listing.min_price?.toLocaleString()}/month</p>
         </div>
       </div>
-    </div>
+    </Link>
   );
 }
 

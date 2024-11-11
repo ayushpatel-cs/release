@@ -2,16 +2,32 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './homepage.css';
 import homescreenimage from '../../images/homepage.png';
+import CitySearchAutocomplete from '../Common/CitySearchAutocomplete';
+
 
 function Homepage() {
   const navigate = useNavigate();
-  const [location, setLocation] = useState('');
+  const [locationData, setLocationData] = useState(null);
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
 
+  const handleLocationSelect = (data) => {
+    setLocationData(data);
+  };
+
   const handleSearch = () => {
-    // Navigate to the search page with query parameters
-    navigate(`/search?location=${encodeURIComponent(location)}&from=${fromDate}&to=${toDate}`);
+    if (!locationData) return;
+
+    const queryParams = new URLSearchParams({
+      lat: locationData.latitude,
+      lng: locationData.longitude,
+      address: locationData.address
+    });
+    
+    if (fromDate) queryParams.set('from', fromDate);
+    if (toDate) queryParams.set('to', toDate);
+    
+    navigate(`/search?${queryParams.toString()}`);
   };
 
   return (
@@ -26,13 +42,11 @@ function Homepage() {
           Looking for a place to stay? We've got you covered!
         </h2>
         <div className="search-bar">
-          <div className="search-input">
+          <div className="search-input flex-grow">
             <label>Location</label>
-            <input 
-              type="text" 
-              placeholder="Where do you want to stay?" 
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
+            <CitySearchAutocomplete
+              placeholder="Where do you want to stay?"
+              onLocationSelect={handleLocationSelect}
             />
           </div>
           <div className="search-input">
@@ -51,7 +65,11 @@ function Homepage() {
               onChange={(e) => setToDate(e.target.value)}
             />
           </div>
-          <button className="search-button" onClick={handleSearch}>
+          <button 
+            className="search-button" 
+            onClick={handleSearch}
+            disabled={!locationData}
+          >
             <span role="img" aria-label="search icon">🔍</span>
           </button>
         </div>
