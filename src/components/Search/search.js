@@ -33,13 +33,26 @@ const AuctionTable = ({ bids }) => (
         </tr>
       </thead>
       <tbody className="bg-white divide-y divide-gray-200">
-        {bids.map((bid, index) => (
-          <tr key={index}>
-            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Anonymous {bid.id}</td>
-            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${bid.amount}</td>
-            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{bid.time}</td>
+        {bids?.map((bid) => (
+          <tr key={bid.id}>
+            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+              {bid.bidder?.name || 'Anonymous'}
+            </td>
+            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+              ${bid.amount.toLocaleString()}
+            </td>
+            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+              {new Date(bid.created_at).toLocaleString()}
+            </td>
           </tr>
         ))}
+        {(!bids || bids.length === 0) && (
+          <tr>
+            <td colSpan="3" className="px-6 py-4 text-center text-sm text-gray-500">
+              No bids yet
+            </td>
+          </tr>
+        )}
       </tbody>
     </table>
   </div>
@@ -51,10 +64,11 @@ const ListingCard = ({ listing, setModalState, navigate, user }) => {
 
   const fetchBids = async () => {
     try {
-      const response = await api.get(`/properties/${listing.id}/bids`);
-      setBids(response.data.bids);
+      const response = await api.get(`/properties/${listing.id}`);
+      setBids(response.data.bids || []);
     } catch (error) {
       console.error('Error fetching bids:', error);
+      setBids([]);
     }
   };
 
