@@ -55,14 +55,14 @@ const CitySearchAutocomplete = ({ onLocationSelect, placeholder, initialValue = 
   return (
     <div className="relative">
       <input
-        ref={inputRef}
-        type="text"
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
-        placeholder={placeholder}
-        className="w-full border-none bg-transparent text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-0 text-lg"
-        disabled={isLoading}
-      />
+  ref={inputRef}
+  type="text"
+  value={value}
+  onChange={(e) => setValue(e.target.value)}
+  placeholder={placeholder}
+  className="w-full border-none bg-transparent text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-0 text-sm text-center" // Smaller font and centered text
+  disabled={isLoading}
+/>
       {isLoading && (
         <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
           <div className="animate-spin h-5 w-5 border-2 border-gray-500 rounded-full border-t-transparent"></div>

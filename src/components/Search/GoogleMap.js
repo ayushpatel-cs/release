@@ -1,165 +1,152 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { googleMapsLoader } from '../../utils/googleMaps';
+import React, { useState } from 'react';
+import { GoogleMap, useJsApiLoader, Marker, InfoWindow, Circle } from '@react-google-maps/api';
 
-const GoogleMap = ({ listings, center, zoom = 13, radius = 10 }) => {
-  const mapRef = useRef(null);
-  const markersRef = useRef([]);
-  const circleRef = useRef(null);
-  const [map, setMap] = useState(null);
-  const [error, setError] = useState(null);
+const GoogleMapComponent = ({ listings, center, zoom = 13, radius = 10 }) => {
+  const { isLoaded, loadError } = useJsApiLoader({
+    googleMapsApiKey: 'YOUR_GOOGLE_MAPS_API_KEY', // Replace with your actual API key
+  });
 
-  useEffect(() => {
-    googleMapsLoader.load()
-      .then((google) => {
-        if (!mapRef.current) return;
+  const [selectedListing, setSelectedListing] = useState(null);
 
-        const mapInstance = new google.maps.Map(mapRef.current, {
-          zoom: zoom,
-          disableDefaultUI: true,
-          zoomControl: true,
-          mapTypeControl: false,
-          streetViewControl: false,
-          fullscreenControl: true,
-          center: center || { lat: 39.8283, lng: -98.5795 }, // Default to US center
-        });
-
-        setMap(mapInstance);
-
-        if (center?.lat && center?.lng) {
-          createCircle(mapInstance, center, radius);
-          updateMarkers(mapInstance);
-        }
-      })
-      .catch((err) => {
-        console.error('Error loading Google Maps:', err);
-        setError('Failed to load map');
-      });
-
-    return () => {
-      cleanupMap();
+  const createCustomMarkerIcon = (price) => {
+    const svg = `
+   <svg xmlns="http://www.w3.org/2000/svg" width="60" height="35">
+  <!-- Outer Shadow Ellipse for Depth -->
+  <ellipse cx="30" cy="17.5" rx="27" ry="17" fill="white" stroke="#6B7FF0" stroke-width="3" />
+  <!-- Main Ellipse with White Fill -->
+  <ellipse cx="30" cy="17.5" rx="25" ry="15" fill="white" />
+  <!-- Price Text in the Center -->
+  <text x="50%" y="50%" text-anchor="middle" dy=".3em" font-size="14" fill="#6B7FF0" font-weight="bold">
+    $${parseInt(price)}
+  </text>
+</svg>
+    `;
+    const encoded = encodeURIComponent(svg);
+    return {
+      url: `data:image/svg+xml;charset=UTF-8,${encoded}`,
+      scaledSize: new window.google.maps.Size(50, 30),
     };
-  }, []);
-
-  useEffect(() => {
-    if (!map) return;
-
-    if (center && typeof center === 'object' && center.lat && center.lng) {
-      map.setCenter(center);
-      map.setZoom(zoom);
-      createCircle(map, center, radius);
-      updateMarkers(map);
-    }
-  }, [center, zoom, radius, map]);
-
-  useEffect(() => {
-    if (map && listings) {
-      updateMarkers(map);
-    }
-  }, [listings, map]);
-
-  const cleanupMap = () => {
-    if (markersRef.current.length > 0) {
-      markersRef.current.forEach(marker => {
-        if (marker.marker) {
-          marker.marker.setMap(null);
-        }
-        if (marker.priceTag && marker.priceTag.parentNode) {
-          marker.priceTag.parentNode.removeChild(marker.priceTag);
-        }
-      });
-      markersRef.current = [];
-    }
-
-    if (circleRef.current) {
-      circleRef.current.setMap(null);
-      circleRef.current = null;
-    }
   };
 
-  const createCircle = (mapInstance, center, radius) => {
-    if (circleRef.current) {
-      circleRef.current.setMap(null);
-    }
-
-    circleRef.current = new window.google.maps.Circle({
-      strokeColor: '#6B7FF0',
-      strokeOpacity: 0.8,
-      strokeWeight: 2,
-      fillColor: '#6B7FF0',
-      fillOpacity: 0.1,
-      map: mapInstance,
-      center: center,
-      radius: radius * 1609.34
-    });
-
-    const bounds = circleRef.current.getBounds();
-    if (bounds) {
-      mapInstance.fitBounds(bounds);
-    }
+  const mapOptions = {
+    styles: [
+      {
+        featureType: "poi",
+        elementType: "labels",
+        stylers: [{ visibility: "off" }],
+      },
+      {
+        featureType: "poi.business",
+        stylers: [{ visibility: "off" }],
+      },
+      {
+        featureType: "transit",
+        elementType: "labels.icon",
+        stylers: [{ visibility: "off" }],
+      },
+    ],
+    disableDefaultUI: true,
+    zoomControl: true,
   };
 
-  const updateMarkers = (mapInstance) => {
-    markersRef.current.forEach(marker => {
-      if (marker.marker) {
-        marker.marker.setMap(null);
-      }
-      if (marker.priceTag && marker.priceTag.parentNode) {
-        marker.priceTag.parentNode.removeChild(marker.priceTag);
-      }
-    });
-    markersRef.current = [];
-
-    listings.forEach(listing => {
-      if (!listing.latitude || !listing.longitude) return;
-
-      const marker = new window.google.maps.Marker({
-        position: { lat: parseFloat(listing.latitude), lng: parseFloat(listing.longitude) },
-        map: mapInstance
-      });
-
-      const priceTag = document.createElement('div');
-      priceTag.className = 'price-tag';
-      priceTag.innerHTML = `
-        <div class="bg-white rounded-full px-3 py-1 shadow-lg flex items-center space-x-1 cursor-pointer hover:scale-105 transition-transform">
-          <span class="text-[#6B7FF0] font-semibold text-sm">$${listing.min_price}</span>
-        </div>
-      `;
-
-      const overlay = new window.google.maps.OverlayView();
-      overlay.onAdd = function() {
-        const panes = this.getPanes();
-        panes.overlayMouseTarget.appendChild(priceTag);
-      };
-
-      overlay.draw = function() {
-        const projection = this.getProjection();
-        if (projection) {
-          const position = projection.fromLatLngToDivPixel(marker.getPosition());
-          if (position) {
-            priceTag.style.left = (position.x - 30) + 'px';
-            priceTag.style.top = (position.y - 10) + 'px';
-          }
-        }
-      };
-
-      overlay.setMap(mapInstance);
-      markersRef.current.push({ marker, priceTag, overlay });
-
-      priceTag.addEventListener('click', () => {
-        window.location.href = `/listings/${listing.id}`;
-      });
-    });
-  };
-
-  if (error) {
+  if (loadError) {
     return (
       <div className="w-full h-full rounded-2xl flex items-center justify-center bg-gray-100">
-        <div className="text-red-500">{error}</div>
+        <div className="text-red-500">Failed to load map</div>
       </div>
     );
   }
 
-  return <div ref={mapRef} className="w-full h-full rounded-2xl" />;
+  if (!isLoaded) {
+    return (
+      <div className="w-full h-full rounded-2xl flex items-center justify-center bg-gray-100">
+        Loading Map...
+      </div>
+    );
+  }
+
+  return (
+    <GoogleMap
+      mapContainerStyle={{
+        width: '100%',
+        height: '100%',
+      }}
+      zoom={zoom}
+      center={center || { lat: 39.8283, lng: -98.5795 }} // Default to US center
+      options={mapOptions}
+    >
+      <Circle
+        center={center}
+        radius={radius * 1609.34}
+        options={{
+          strokeColor: '#6B7FF0',
+          strokeOpacity: 0.8,
+          strokeWeight: 2,
+          fillColor: '#6B7FF0',
+          fillOpacity: 0.1,
+        }}
+      />
+
+      {listings.map((listing) => {
+        if (!listing.latitude || !listing.longitude) return null;
+        return (
+          <Marker
+            key={listing.id}
+            position={{
+              lat: parseFloat(listing.latitude),
+              lng: parseFloat(listing.longitude),
+            }}
+            icon={createCustomMarkerIcon(listing.min_price)}
+            onClick={() => setSelectedListing(listing)}
+          />
+        );
+      })}
+
+      {selectedListing && (
+        <InfoWindow
+        position={{
+          lat: parseFloat(selectedListing.latitude),
+          lng: parseFloat(selectedListing.longitude),
+        }}
+        onCloseClick={() => setSelectedListing(null)}
+      >
+        <div className="w-40 h-40 flex flex-col items-start">
+          {/* Conditionally render the image section if an image is available */}
+          {selectedListing.image_url ? (
+            <>
+              <img
+                src={selectedListing.image_url}
+                alt={selectedListing.title}
+                className="w-full h-24 object-cover rounded-t-md"
+              />
+              <div className="p-2 bg-white w-full rounded-b-md shadow-md">
+                <h2 className="text-[#6B7FF0] font-semibold text-sm">${selectedListing.min_price}</h2>
+                <p className="text-gray-700 text-xs font-medium">{selectedListing.title}</p>
+                {selectedListing.rating && (
+                  <div className="flex items-center mt-1">
+                    <span className="text-yellow-500 text-xs mr-1">⭐</span>
+                    <span className="text-gray-500 text-xs">{selectedListing.rating}</span>
+                  </div>
+                )}
+              </div>
+            </>
+          ) : (
+            <div className="p-2 bg-white w-full h-full flex flex-col justify-end items-start rounded-md shadow-md">
+              <h2 className="text-[#6B7FF0] font-semibold text-sm">${selectedListing.min_price}</h2>
+              <p className="text-gray-700 text-xs font-medium">{selectedListing.title}</p>
+              {selectedListing.rating && (
+                <div className="flex items-center mt-1">
+                  <span className="text-yellow-500 text-xs mr-1">⭐</span>
+                  <span className="text-gray-500 text-xs">{selectedListing.rating}</span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </InfoWindow>
+      )}
+    </GoogleMap>
+  );
 };
 
-export default GoogleMap; 
+export default GoogleMapComponent;
