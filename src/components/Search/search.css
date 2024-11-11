@@ -29,3 +29,22 @@
     margin: 0;
   }
   
+  .marker-content {
+    transform-origin: center;
+    z-index: 1;
+  }
+  
+  .marker-content:hover {
+    z-index: 2;
+  }
+  
+  .price-tag {
+    position: absolute;
+    transform: translate(-50%, -100%);
+    z-index: 1;
+  }
+  
+  .price-tag:hover {
+    z-index: 2;
+  }
+  

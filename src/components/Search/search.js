@@ -6,6 +6,8 @@ import apartment3Image from '../../images/apartment_3.jpg';
 import condo1Image from '../../images/condo_1.jpg';
 import api from '../../utils/api';
 import { Link } from 'react-router-dom';
+import GoogleMap from './GoogleMap';
+import CitySearchAutocomplete from '../Common/CitySearchAutocomplete';
 
 const images = [homepageImage, apartment2Image, apartment3Image, condo1Image];
 
@@ -68,90 +70,14 @@ const ListingCard = ({ listing }) => {
 };
 
 const MapView = ({ listings, center, zoom, radius }) => {
-  const [mapCenter, setMapCenter] = useState(null);
-  const [mapBounds, setMapBounds] = useState(null);
-
-  useEffect(() => {
-    if (center && typeof center === 'string') {
-      // Convert address to coordinates using Google Geocoding
-      const geocoder = new window.google.maps.Geocoder();
-      geocoder.geocode({ address: center }, (results, status) => {
-        if (status === 'OK') {
-          const { lat, lng } = results[0].geometry.location;
-          const newCenter = [lat(), lng()];
-          setMapCenter(newCenter);
-          
-          // Calculate map bounds based on center and radius
-          const radiusInDegrees = radius / 111; // Rough conversion from km to degrees
-          setMapBounds({
-            north: newCenter[0] + radiusInDegrees,
-            south: newCenter[0] - radiusInDegrees,
-            east: newCenter[1] + radiusInDegrees,
-            west: newCenter[1] - radiusInDegrees
-          });
-        }
-      });
-    }
-  }, [center, radius]);
-
-  // Function to convert coordinates to relative positions
-  const calculateMapPosition = (coordinates) => {
-    // Make sure coordinates and bounds exist
-    if (!coordinates || !coordinates.latitude || !coordinates.longitude || !mapBounds) {
-      console.error('Invalid coordinates or bounds:', { coordinates, mapBounds });
-      return { left: '50%', top: '50%' }; // Default to center if invalid
-    }
-
-    // Calculate relative positions as percentages
-    const left = ((coordinates.longitude - mapBounds.west) / (mapBounds.east - mapBounds.west) * 100);
-    const top = ((mapBounds.north - coordinates.latitude) / (mapBounds.north - mapBounds.south) * 100);
-
-    // Ensure positions stay within bounds
-    return {
-      left: Math.max(0, Math.min(100, left)) + '%',
-      top: Math.max(0, Math.min(100, top)) + '%'
-    };
-  };
-
-  // Only show listings within the current bounds
-  const visibleListings = listings.filter(listing => {
-    if (!mapBounds) return true;
-    return (
-      listing.latitude >= mapBounds.south &&
-      listing.latitude <= mapBounds.north &&
-      listing.longitude >= mapBounds.west &&
-      listing.longitude <= mapBounds.east
-    );
-  });
-
   return (
     <div className="col-span-3 bg-white rounded-2xl h-[calc(100vh-240px)] overflow-hidden shadow-lg">
-      <div className="h-full relative">
-        <iframe
-          width="100%"
-          height="100%"
-          loading="lazy"
-          allowFullScreen
-          src={`https://www.google.com/maps/embed/v1/place?key=${process.env.REACT_APP_GOOGLE_MAPS_API_KEY}&q=${encodeURIComponent(center)}&zoom=${zoom || 14}`}
-        ></iframe>
-        {visibleListings.map((listing) => {
-          const position = calculateMapPosition({
-            latitude: listing.latitude,
-            longitude: listing.longitude
-          });
-          return (
-            <div key={listing.id} className="absolute" style={position}>
-              <div className="bg-white rounded-full px-3 py-1 shadow-lg flex items-center space-x-1">
-                <span className="text-[#6B7FF0] font-semibold text-sm">${listing.min_price}</span>
-                <svg className="h-4 w-4 text-[#6B7FF0]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+      <GoogleMap 
+        listings={listings}
+        center={center}
+        zoom={zoom}
+        radius={radius}
+      />
     </div>
   );
 };
@@ -195,42 +121,44 @@ export default function ImprovedSearchInterface() {
   });
   const [bidAmount, setBidAmount] = useState('');
   const [searchInput, setSearchInput] = useState('');
-  const [searchLocation, setSearchLocation] = useState('Atlanta, GA');
+  const [searchLocation, setSearchLocation] = useState('');
+  const [mapCenter, setMapCenter] = useState(null);
 
   useEffect(() => {
     // Get search params from URL
     const params = new URLSearchParams(window.location.search);
-    const locationParam = params.get('location');
+    const lat = params.get('lat');
+    const lng = params.get('lng');
+    const address = params.get('address');
     
-    if (locationParam) {
-      setSearchInput(locationParam);
-      setSearchLocation(locationParam);
+    if (lat && lng) {
+      setMapCenter({ lat: parseFloat(lat), lng: parseFloat(lng) });
+      setSearchLocation(address || '');
     }
   }, []);
 
   useEffect(() => {
     const fetchListings = async () => {
+      if (!mapCenter) return;
+
       setLoading(true);
       try {
         const params = new URLSearchParams({
-          q: searchInput,
-          min_price: filters.priceRange[0],
-          max_price: filters.priceRange[1],
-          location: searchLocation,
+          latitude: mapCenter.lat,
+          longitude: mapCenter.lng,
+          radius: filters.radius || 10
         });
 
+        if (filters.priceRange[0] > 0) params.append('min_price', filters.priceRange[0]);
+        if (filters.priceRange[1] < 5000) params.append('max_price', filters.priceRange[1]);
         if (filters.bedrooms > 0) params.append('bedrooms', filters.bedrooms);
         if (filters.bathrooms > 0) params.append('bathrooms', filters.bathrooms);
         if (filters.propertyType) params.append('type', filters.propertyType);
-        
+
         const response = await api.get(`/search?${params.toString()}`);
         setListings(response.data.properties);
-
-        if (response.data.location) {
-          setSearchLocation(response.data.location);
-        }
-      } catch (err) {
-        console.error('Error fetching listings:', err);
+      } catch (error) {
+        console.error('Error fetching listings:', error);
         setError('Failed to fetch listings');
       } finally {
         setLoading(false);
@@ -238,7 +166,7 @@ export default function ImprovedSearchInterface() {
     };
 
     fetchListings();
-  }, [searchInput, filters, searchLocation]);
+  }, [mapCenter, filters]);
 
   const handleFilterChange = (filterName, value) => {
     setFilters(prevFilters => ({ ...prevFilters, [filterName]: value }));
@@ -274,19 +202,29 @@ export default function ImprovedSearchInterface() {
 
   const handleSearchInputChange = (value) => {
     setSearchInput(value);
-    setSearchLocation(value || 'Atlanta, GA');
+    setSearchLocation(value);
+  };
+
+  const handleLocationSelect = (locationData) => {
+    setMapCenter({ lat: locationData.latitude, lng: locationData.longitude });
+    setSearchLocation(locationData.address);
+    
+    // Update URL with search parameters
+    const searchParams = new URLSearchParams(window.location.search);
+    searchParams.set('lat', locationData.latitude);
+    searchParams.set('lng', locationData.longitude);
+    searchParams.set('address', locationData.address);
+    window.history.pushState({}, '', `${window.location.pathname}?${searchParams.toString()}`);
   };
 
   return (
     <div className="max-w-[1400px] mx-auto p-6 font-sans bg-[#FFF8F0] min-h-screen">
       <div className="flex items-center space-x-2 mb-8">
         <div className="flex-grow flex items-center space-x-2 bg-white rounded-full p-2 shadow-md border border-gray-200">
-          <input 
-            type="text" 
-            placeholder="Search by property name" 
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            className="flex-grow border-none bg-transparent text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-0 text-lg px-4"
+          <CitySearchAutocomplete
+            onLocationSelect={handleLocationSelect}
+            placeholder="Enter a location..."
+            initialValue={searchLocation}
           />
           <div className="w-px h-8 bg-gray-200"></div>
           <input 
@@ -352,7 +290,12 @@ export default function ImprovedSearchInterface() {
         
       <div className="grid grid-cols-5 gap-8">
         <div className="col-span-3 bg-white rounded-2xl h-[calc(100vh-240px)] overflow-hidden shadow-lg">
-          <MapView listings={listings} center={searchLocation} zoom={13} radius={filters.radius} />
+          <MapView 
+            listings={listings}
+            center={mapCenter || { lat: 39.8283, lng: -98.5795 }}
+            zoom={mapCenter ? 13 : 4}
+            radius={filters.radius}
+          />
         </div>
         <div className="col-span-2 space-y-6 overflow-y-auto h-[calc(100vh-240px)] pr-4">
           {loading ? (

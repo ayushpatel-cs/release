@@ -3,7 +3,7 @@ import { Camera, Upload, Mail, Phone, MapPin, Star, Briefcase, GraduationCap, He
 import { useAuth } from '../../contexts/AuthContext';
 import { useUserData } from '../../hooks/useUserData';
 import api from '../../utils/api';
-import AddressAutocomplete from '../Common/AddressAutocomplete';
+import PropertyAddressAutocomplete from '../Common/PropertyAddressAutocomplete';
 
 // Move ProfileTab outside of UserDashboard
 const ProfileTab = ({ userData, onUpdateProfile, refreshData }) => {
@@ -373,7 +373,7 @@ const ListingsTab = ({
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Address
                 </label>
-                <AddressAutocomplete
+                <PropertyAddressAutocomplete
                   onAddressSelect={(addressDetails) => {
                     setNewListing(prev => ({
                       ...prev,

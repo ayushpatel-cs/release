@@ -1,47 +1,28 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { googleMapsLoader } from '../../utils/googleMaps';
 
-const AddressAutocomplete = ({ onAddressSelect, className, placeholder }) => {
+const PropertyAddressAutocomplete = ({ onLocationSelect, className, placeholder }) => {
   const autoCompleteRef = useRef(null);
   const inputRef = useRef(null);
   const [inputValue, setInputValue] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  useEffect(() => {
-    // Load Google Maps JavaScript API
-    const loadGoogleMapsScript = () => {
-      const script = document.createElement('script');
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.REACT_APP_GOOGLE_MAPS_KEY}&libraries=places`;
-      script.async = true;
-      script.defer = true;
-      document.head.appendChild(script);
-      
-      script.onload = initializeAutocomplete;
-    };
-
-    if (!window.google) {
-      loadGoogleMapsScript();
-    } else {
-      initializeAutocomplete();
-    }
-
-    return () => {
-      // Cleanup if component unmounts
-      if (autoCompleteRef.current) {
-        window.google.maps.event.clearInstanceListeners(autoCompleteRef.current);
-      }
-    };
-  }, []);
-
-  const initializeAutocomplete = () => {
-    autoCompleteRef.current = new window.google.maps.places.Autocomplete(
-      inputRef.current,
-      {
+  const initializeAutocomplete = (google) => {
+    try {
+      autoCompleteRef.current = new google.maps.places.Autocomplete(inputRef.current, {
         componentRestrictions: { country: 'us' },
         fields: ['address_components', 'formatted_address', 'geometry', 'place_id'],
         types: ['address']
-      }
-    );
+      });
 
-    autoCompleteRef.current.addListener('place_changed', handlePlaceSelect);
+      autoCompleteRef.current.addListener('place_changed', handlePlaceSelect);
+      setIsLoading(false);
+    } catch (err) {
+      console.error('Error initializing autocomplete:', err);
+      setError('Failed to initialize location search');
+      setIsLoading(false);
+    }
   };
 
   const handlePlaceSelect = () => {
@@ -52,7 +33,6 @@ const AddressAutocomplete = ({ onAddressSelect, className, placeholder }) => {
       return;
     }
 
-    // Parse address components
     const addressComponents = {};
     place.address_components.forEach(component => {
       component.types.forEach(type => {
@@ -60,7 +40,7 @@ const AddressAutocomplete = ({ onAddressSelect, className, placeholder }) => {
       });
     });
 
-    const addressDetails = {
+    const locationData = {
       formatted_address: place.formatted_address,
       latitude: place.geometry.location.lat(),
       longitude: place.geometry.location.lng(),
@@ -73,8 +53,26 @@ const AddressAutocomplete = ({ onAddressSelect, className, placeholder }) => {
     };
 
     setInputValue(place.formatted_address);
-    onAddressSelect(addressDetails);
+    onLocationSelect(locationData);
   };
+
+  useEffect(() => {
+    googleMapsLoader.load()
+      .then((google) => {
+        initializeAutocomplete(google);
+      })
+      .catch((err) => {
+        console.error('Error loading Google Maps:', err);
+        setError('Failed to load location search');
+        setIsLoading(false);
+      });
+
+    return () => {
+      if (autoCompleteRef.current && window.google) {
+        window.google.maps.event.clearInstanceListeners(autoCompleteRef.current);
+      }
+    };
+  }, []);
 
   return (
     <div className="relative">
@@ -85,9 +83,16 @@ const AddressAutocomplete = ({ onAddressSelect, className, placeholder }) => {
         onChange={(e) => setInputValue(e.target.value)}
         className={`w-full p-2 border border-gray-300 rounded-md ${className}`}
         placeholder={placeholder || "Enter an address"}
+        disabled={isLoading}
       />
+      {isLoading && (
+        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+          <div className="animate-spin h-5 w-5 border-2 border-gray-500 rounded-full border-t-transparent"></div>
+        </div>
+      )}
+      {error && <div className="text-red-500 text-sm mt-1">{error}</div>}
     </div>
   );
 };
 
-export default AddressAutocomplete; 
+export default PropertyAddressAutocomplete; 

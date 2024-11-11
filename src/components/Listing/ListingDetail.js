@@ -107,7 +107,7 @@ export default function ListingDetail() {
               <h2 className="text-xl font-semibold mb-4">Location</h2>
               <div className="aspect-[2/1] relative rounded-lg overflow-hidden bg-gray-200">
                 <iframe
-                  src={`https://www.google.com/maps/embed/v1/place?key=${process.env.REACT_APP_GOOGLE_MAPS_KEY}&q=${encodeURIComponent(listing.address)}`}
+                  src={`https://www.google.com/maps/embed/v1/place?key=${process.env.REACT_APP_GOOGLE_MAPS_API_KEY}&q=${encodeURIComponent(listing.address)}`}
                   width="100%"
                   height="100%"
                   style={{ border: 0 }}
