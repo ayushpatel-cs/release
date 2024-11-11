@@ -41,7 +41,8 @@ export default function ListingDetail() {
       setListing(response.data);
     } catch (error) {
       console.error('Error placing bid:', error);
-      alert('Failed to place bid');
+      const errorMessage = error.response?.data?.error || error.message || 'Failed to place bid';
+      alert(`Error: ${errorMessage}`);
     }
   };
 
