@@ -6,7 +6,7 @@ import apartment3Image from '../../images/apartment_3.jpg';
 import condo1Image from '../../images/condo_1.jpg';
 import api from '../../utils/api';
 import { Link } from 'react-router-dom';
-import GoogleMap from './GoogleMap';
+import GoogleMapComponent from './GoogleMap';
 import CitySearchAutocomplete from '../Common/CitySearchAutocomplete';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -150,7 +150,7 @@ const ListingCard = ({ listing, setModalState, navigate, user }) => {
 const MapView = ({ listings, center, zoom, radius }) => {
   return (
     <div className="col-span-3 bg-white rounded-2xl h-[calc(100vh-240px)] overflow-hidden shadow-lg">
-      <GoogleMap 
+      <GoogleMapComponent 
         listings={listings}
         center={center}
         zoom={zoom}
@@ -290,6 +290,7 @@ export default function ImprovedSearchInterface() {
     setSearchInput(value);
     setSearchLocation(value);
   };
+  
 
   const handleLocationSelect = (data) => {
     setMapCenter({
@@ -298,7 +299,7 @@ export default function ImprovedSearchInterface() {
     });
     
     // Use the viewport bounds from Google Places API for better search results
-    if (data.viewport) {
+    if (data.viewport && mapRef.current) {
       const bounds = new window.google.maps.LatLngBounds(
         new window.google.maps.LatLng(data.viewport.south, data.viewport.west),
         new window.google.maps.LatLng(data.viewport.north, data.viewport.east)
