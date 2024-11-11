@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './homepage.css';
 import homescreenimage from '../../images/homepage.png';
-import PropertyAddressAutocomplete from '../Common/PropertyAddressAutocomplete';
+import CitySearchAutocomplete from '../Common/CitySearchAutocomplete';
 
 
 function Homepage() {
@@ -44,7 +44,7 @@ function Homepage() {
         <div className="search-bar">
           <div className="search-input flex-grow">
             <label>Location</label>
-            <PropertyAddressAutocomplete
+            <CitySearchAutocomplete
               placeholder="Where do you want to stay?"
               onLocationSelect={handleLocationSelect}
             />

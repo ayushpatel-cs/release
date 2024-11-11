@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Search, Sliders, Wifi, UtensilsCrossed, Dumbbell, Pencil, DollarSign, Bed, Bath, Home, Info, MapPin, ArrowUpDown } from 'lucide-react';
 import homepageImage from '../../images/homepage.png';
 import apartment2Image from '../../images/apartment_2.webp';
@@ -123,6 +123,7 @@ export default function ImprovedSearchInterface() {
   const [searchInput, setSearchInput] = useState('');
   const [searchLocation, setSearchLocation] = useState('');
   const [mapCenter, setMapCenter] = useState(null);
+  const mapRef = useRef(null);
 
   useEffect(() => {
     // Get search params from URL
@@ -205,16 +206,20 @@ export default function ImprovedSearchInterface() {
     setSearchLocation(value);
   };
 
-  const handleLocationSelect = (locationData) => {
-    setMapCenter({ lat: locationData.latitude, lng: locationData.longitude });
-    setSearchLocation(locationData.address);
+  const handleLocationSelect = (data) => {
+    setMapCenter({
+      lat: data.latitude,
+      lng: data.longitude
+    });
     
-    // Update URL with search parameters
-    const searchParams = new URLSearchParams(window.location.search);
-    searchParams.set('lat', locationData.latitude);
-    searchParams.set('lng', locationData.longitude);
-    searchParams.set('address', locationData.address);
-    window.history.pushState({}, '', `${window.location.pathname}?${searchParams.toString()}`);
+    // Use the viewport bounds from Google Places API for better search results
+    if (data.viewport) {
+      const bounds = new window.google.maps.LatLngBounds(
+        new window.google.maps.LatLng(data.viewport.south, data.viewport.west),
+        new window.google.maps.LatLng(data.viewport.north, data.viewport.east)
+      );
+      mapRef.current.fitBounds(bounds);
+    }
   };
 
   return (

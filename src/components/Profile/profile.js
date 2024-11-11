@@ -374,12 +374,27 @@ const ListingsTab = ({
                   Address
                 </label>
                 <PropertyAddressAutocomplete
-                  onAddressSelect={(addressDetails) => {
+                  onLocationSelect={(locationData) => {
+                    console.log('Raw location data:', locationData); // Debug log
+                    
+                    // Parse address components
+                    const getAddressComponent = (type) => {
+                      const component = locationData.address_components.find(
+                        comp => comp.types.includes(type)
+                      );
+                      return component ? component.long_name : '';
+                    };
+
                     setNewListing(prev => ({
                       ...prev,
-                      address_details: addressDetails,
-                      place_id: addressDetails.place_id,
-                      location: addressDetails.formatted_address
+                      address_line1: locationData.address_line1,
+                      city: locationData.city,
+                      state: locationData.state,
+                      zip_code: locationData.zip_code,
+                      formatted_address: locationData.formatted_address,
+                      latitude: locationData.latitude,
+                      longitude: locationData.longitude,
+                      place_id: locationData.place_id
                     }));
                   }}
                   placeholder="Enter property address"
@@ -522,9 +537,18 @@ export default function UserDashboard() {
   const { userData, listings, bids, loading, error, refreshData } = useUserData(user?.id);
   const [newListing, setNewListing] = useState({
     title: '',
-    location: '',
+    description: '',
     price: '',
+    address_line1: '',
+    city: '',
+    state: '',
+    zip_code: '',
+    formatted_address: '',
+    latitude: null,
+    longitude: null,
+    place_id: '',
     image: null,
+    imageFile: null
   });
 
   if (loading) {
@@ -560,20 +584,42 @@ export default function UserDashboard() {
     try {
       const formData = new FormData();
       
+      // Basic listing details
       formData.append('title', newListing.title);
       formData.append('description', newListing.description);
-      formData.append('place_id', newListing.place_id);
-      formData.append('address_details', JSON.stringify(newListing.address_details));
       formData.append('min_price', newListing.price);
       
+      // Validate address details exist
+      if (!newListing.address_line1 || !newListing.city || !newListing.state || !newListing.zip_code) {
+        throw new Error('Address details are required');
+      }
+
+
+      // Add each address field individually
+      formData.append('address_line1', newListing.address_line1);
+      formData.append('city', newListing.city);
+      formData.append('state', newListing.state);
+      formData.append('zip_code', newListing.zip_code);
+      formData.append('formatted_address', newListing.formatted_address);
+      formData.append('latitude', newListing.latitude);
+      formData.append('longitude', newListing.longitude);
+      formData.append('place_id', newListing.place_id);
+      
+      // Dates
       const today = new Date();
       formData.append('start_date', today.toISOString());
       formData.append('end_date', new Date(today.setMonth(today.getMonth() + 3)).toISOString());
       
+      // Image
       if (newListing.imageFile) {
         formData.append('images', newListing.imageFile);
       }
       
+      // Debug log
+      for (let pair of formData.entries()) {
+        console.log('FormData entry:', pair[0], pair[1]);
+      }
+
       const response = await api.post('/properties', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
@@ -583,18 +629,25 @@ export default function UserDashboard() {
       setShowAddListingForm(false);
       setNewListing({
         title: '',
-        location: '',
-        price: '',
         description: '',
+        price: '',
+        address_line1: '',
+        city: '',
+        state: '',
+        zip_code: '',
+        formatted_address: '',
+        latitude: null,
+        longitude: null,
+        place_id: '',
+        start_date: null,
+        end_date: null,
         image: null,
-        imageFile: null,
-        place_id: null,
-        address_details: null
+        imageFile: null
       });
       
       await refreshData();
     } catch (error) {
-      console.error('Error creating property:', error.response?.data || error);
+      console.error('Error creating property:', error);
       alert('Failed to create listing: ' + (error.response?.data?.error || error.message));
     }
   };
