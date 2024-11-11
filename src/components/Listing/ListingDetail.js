@@ -33,7 +33,7 @@ export default function ListingDetail() {
 
   const handleBid = async () => {
     try {
-      await api.post(`/properties/${id}/bids`, {
+      await api.post(`/bids/properties/${id}/bids`, {
         amount: parseFloat(bidAmount)
       });
       // Refresh listing data after bid
@@ -44,6 +44,39 @@ export default function ListingDetail() {
       alert('Failed to place bid');
     }
   };
+
+  // Add a new BidHistory component
+  const BidHistory = ({ bids }) => (
+    <div className="mt-8">
+      <h3 className="text-xl font-semibold mb-4">Bid History</h3>
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Bidder</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Time</th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {bids?.map((bid) => (
+              <tr key={bid.id}>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {bid.bidder?.name || 'Anonymous'}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  ${bid.amount.toLocaleString()}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {new Date(bid.created_at).toLocaleString()}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
 
   if (loading) return (
     <div className="min-h-screen bg-[#FFF8F0] flex items-center justify-center">
@@ -118,6 +151,9 @@ export default function ListingDetail() {
               </div>
               <p className="mt-4 text-gray-600">{listing.address}</p>
             </section>
+
+            {/* Bid History */}
+            <BidHistory bids={listing.bids} />
           </div>
 
           {/* Right Column - Bid Box */}

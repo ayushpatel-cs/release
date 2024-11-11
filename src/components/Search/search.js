@@ -8,6 +8,8 @@ import api from '../../utils/api';
 import { Link } from 'react-router-dom';
 import GoogleMap from './GoogleMap';
 import CitySearchAutocomplete from '../Common/CitySearchAutocomplete';
+import { useAuth } from '../../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 const images = [homepageImage, apartment2Image, apartment3Image, condo1Image];
 
@@ -43,7 +45,44 @@ const AuctionTable = ({ bids }) => (
   </div>
 );
 
-const ListingCard = ({ listing }) => {
+const ListingCard = ({ listing, setModalState, navigate, user }) => {
+  const [isAuctionOpen, setIsAuctionOpen] = useState(false);
+  const [bids, setBids] = useState([]);
+
+  const fetchBids = async () => {
+    try {
+      const response = await api.get(`/properties/${listing.id}/bids`);
+      setBids(response.data.bids);
+    } catch (error) {
+      console.error('Error fetching bids:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (isAuctionOpen) {
+      fetchBids();
+    }
+  }, [isAuctionOpen, listing.id]);
+
+  const handleBid = (listing) => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+    
+    setModalState(prev => ({ 
+      ...prev, 
+      bid: { isOpen: true, listing } 
+    }));
+  };
+
+  const handleInfo = () => {
+    setModalState(prev => ({ 
+      ...prev, 
+      info: { isOpen: true, listing } 
+    }));
+  };
+
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
       <Link to={`/listings/${listing.id}`} className="block">
@@ -59,11 +98,50 @@ const ListingCard = ({ listing }) => {
         </div>
       </Link>
       <div className="p-6">
+        <div className="flex justify-between items-start mb-2">
+          <p className="text-sm text-gray-600">
+            {listing.bedrooms} beds · {listing.bathrooms} bath · {listing.type}
+          </p>
+          <button onClick={() => handleInfo(listing)} className="text-blue-500 hover:text-blue-600">
+            <Info className="h-5 w-5" />
+          </button>
+        </div>
+        
+        {/* Add features/amenities display */}
+        <div className="flex flex-wrap gap-3 mb-3">
+          {listing.amenities?.map((amenity, index) => (
+            <span key={index} className="flex items-center text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+              {amenity}
+            </span>
+          ))}
+        </div>
+
         <p className="text-gray-600 mb-2">{listing.address}</p>
         <p className="font-semibold text-2xl text-[#6B7FF0] mb-4">
           ${listing.min_price?.toLocaleString()} <span className="font-normal text-gray-600 text-base">/month</span>
         </p>
-        <p className="text-sm text-gray-600">{listing.description}</p>
+
+        {/* Add bidding buttons */}
+        <button 
+          onClick={() => handleBid(listing)}
+          className="w-full bg-[#6B7FF0] text-white py-2 rounded-lg hover:bg-[#5A6FE0] transition-colors mb-4"
+        >
+          Place Bid
+        </button>
+        <button 
+          onClick={() => setIsAuctionOpen(!isAuctionOpen)}
+          className="w-full bg-gray-200 text-gray-800 py-2 rounded-lg hover:bg-gray-300 transition-colors"
+        >
+          {isAuctionOpen ? 'Close Auction' : 'View Auction'}
+        </button>
+
+        {/* Show auction table when open */}
+        {isAuctionOpen && (
+          <div className="mt-4">
+            <h4 className="text-lg font-semibold mb-2">Current Auction</h4>
+            <AuctionTable bids={bids} />
+          </div>
+        )}
       </div>
     </div>
   );
@@ -119,11 +197,42 @@ export default function ImprovedSearchInterface() {
     amenities: { isOpen: false },
     radius: { isOpen: false }
   });
-  const [bidAmount, setBidAmount] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [searchLocation, setSearchLocation] = useState('');
   const [mapCenter, setMapCenter] = useState(null);
   const mapRef = useRef(null);
+  const [bidAmount, setBidAmount] = useState('');
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  const closeModal = (modalName) => {
+    setModalState(prev => ({ ...prev, [modalName]: { isOpen: false, listing: null } }));
+  };
+
+  const submitBid = async () => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+
+    try {
+      const response = await api.post(`/bids/properties/${modalState.bid.listing.id}/bids`, {
+        amount: parseInt(bidAmount)
+      });
+      
+      // Show success message
+      alert('Bid placed successfully!');
+      
+      closeModal('bid');
+      setBidAmount('');
+      
+      // Refresh listings to show updated bid information
+      fetchListings();
+    } catch (error) {
+      console.error('Error placing bid:', error);
+      alert('Failed to place bid: ' + (error.response?.data?.error || error.message));
+    }
+  };
 
   useEffect(() => {
     // Get search params from URL
@@ -138,67 +247,43 @@ export default function ImprovedSearchInterface() {
     }
   }, []);
 
+  // Move fetchListings outside useEffect and make it reusable
+  const fetchListings = async () => {
+    if (!mapCenter) return;
+
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({
+        latitude: mapCenter.lat,
+        longitude: mapCenter.lng,
+        radius: filters.radius || 10
+      });
+
+      if (filters.priceRange[0] > 0) params.append('min_price', filters.priceRange[0]);
+      if (filters.priceRange[1] < 5000) params.append('max_price', filters.priceRange[1]);
+      if (filters.bedrooms > 0) params.append('bedrooms', filters.bedrooms);
+      if (filters.bathrooms > 0) params.append('bathrooms', filters.bathrooms);
+      if (filters.propertyType) params.append('type', filters.propertyType);
+
+      const response = await api.get(`/search?${params.toString()}`);
+      setListings(response.data.properties);
+      return response.data.properties; // Return the listings for reuse
+    } catch (error) {
+      console.error('Error fetching listings:', error);
+      setError('Failed to fetch listings');
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Update the useEffect to use the fetchListings function
   useEffect(() => {
-    const fetchListings = async () => {
-      if (!mapCenter) return;
-
-      setLoading(true);
-      try {
-        const params = new URLSearchParams({
-          latitude: mapCenter.lat,
-          longitude: mapCenter.lng,
-          radius: filters.radius || 10
-        });
-
-        if (filters.priceRange[0] > 0) params.append('min_price', filters.priceRange[0]);
-        if (filters.priceRange[1] < 5000) params.append('max_price', filters.priceRange[1]);
-        if (filters.bedrooms > 0) params.append('bedrooms', filters.bedrooms);
-        if (filters.bathrooms > 0) params.append('bathrooms', filters.bathrooms);
-        if (filters.propertyType) params.append('type', filters.propertyType);
-
-        const response = await api.get(`/search?${params.toString()}`);
-        setListings(response.data.properties);
-      } catch (error) {
-        console.error('Error fetching listings:', error);
-        setError('Failed to fetch listings');
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchListings();
-  }, [mapCenter, filters]);
+  }, [mapCenter, filters]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleFilterChange = (filterName, value) => {
     setFilters(prevFilters => ({ ...prevFilters, [filterName]: value }));
-  };
-
-  const handleBid = (listing) => {
-    setModalState(prev => ({ ...prev, bid: { isOpen: true, listing } }));
-    setBidAmount(listing.price.toString());
-  };
-
-  const handleInfo = (listing) => {
-    setModalState(prev => ({ ...prev, info: { isOpen: true, listing } }));
-  };
-
-  const submitBid = () => {
-    const bidValue = parseInt(bidAmount);
-    const listingPrice = modalState.bid.listing.price;
-    let chance;
-    if (bidValue >= listingPrice * 1.1) {
-      chance = 95;
-    } else if (bidValue >= listingPrice) {
-      chance = 70 + (bidValue - listingPrice) / (listingPrice * 0.1) * 25;
-    } else {
-      chance = Math.max(0, 70 - (listingPrice - bidValue) / (listingPrice * 0.1) * 70);
-    }
-    console.log(`Bid of $${bidAmount} placed on ${modalState.bid.listing.name} with ${chance.toFixed(2)}% chance of success`);
-    setModalState(prev => ({ ...prev, bid: { isOpen: false, listing: null } }));
-  };
-
-  const closeModal = (modalName) => {
-    setModalState(prev => ({ ...prev, [modalName]: { isOpen: false, listing: null } }));
   };
 
   const handleSearchInputChange = (value) => {
@@ -313,7 +398,13 @@ export default function ImprovedSearchInterface() {
                 {listings.length} properties found
               </div>
               {listings.map((listing) => (
-                <ListingCard key={listing.id} listing={listing} />
+                <ListingCard 
+                  key={listing.id} 
+                  listing={listing}
+                  setModalState={setModalState}
+                  navigate={navigate}
+                  user={user}
+                />
               ))}
             </>
           )}
@@ -325,7 +416,7 @@ export default function ImprovedSearchInterface() {
         onClose={() => closeModal('bid')}
         title="Place a Bid"
       >
-        <p className="mb-4">Current price: ${modalState.bid.listing?.price}/month</p>
+        <p className="mb-4">Current price: ${modalState.bid.listing?.min_price}/month</p>
         <div className="mb-4">
           <label className="block text-sm font-medium text-gray-700 mb-1">Your Bid:</label>
           <input
@@ -338,10 +429,18 @@ export default function ImprovedSearchInterface() {
         <div className="mb-4">
           <label className="block text-sm font-medium text-gray-700 mb-1">Bid Competitiveness:</label>
           <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
-            <div className="bg-blue-600 h-2.5 rounded-full" style={{width: `${Math.min(100, (parseInt(bidAmount) / modalState.bid.listing?.price) * 100)}%`}}></div>
+            <div 
+              className="bg-blue-600 h-2.5 rounded-full" 
+              style={{
+                width: `${Math.min(100, (parseInt(bidAmount) / modalState.bid.listing?.min_price) * 100)}%`
+              }}
+            />
           </div>
         </div>
-        <button onClick={submitBid} className="w-full px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+        <button 
+          onClick={submitBid} 
+          className="w-full px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+        >
           Submit Bid
         </button>
       </Modal>

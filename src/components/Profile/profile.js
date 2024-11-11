@@ -668,12 +668,12 @@ export default function UserDashboard() {
           <div className="flex justify-between items-start">
             <div>
               <h3 className="font-semibold text-lg mb-1">{bid.Property?.title}</h3>
-              <p className="text-gray-600 mb-1">{bid.Property?.address}</p>
+              <p className="text-gray-600 mb-1">{bid.Property?.formatted_address}</p>
             </div>
             <div className="text-right">
               <p className="font-bold text-lg text-green-600">${bid.amount.toLocaleString()}</p>
               <p className="text-sm text-gray-500">
-                {new Date(bid.created_at).toLocaleDateString()}
+                Bid placed: {new Date(bid.created_at).toLocaleDateString()}
               </p>
             </div>
           </div>
