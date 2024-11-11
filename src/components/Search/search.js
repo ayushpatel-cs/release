@@ -67,22 +67,40 @@ const ListingCard = ({ listing }) => {
   );
 };
 
-const MapView = ({ listings }) => {
+const MapView = ({ listings, center, zoom, radius }) => {
+  const [mapCenter, setMapCenter] = useState(null);
+  const [mapBounds, setMapBounds] = useState(null);
+
+  useEffect(() => {
+    if (center && typeof center === 'string') {
+      // Convert address to coordinates using Google Geocoding
+      const geocoder = new window.google.maps.Geocoder();
+      geocoder.geocode({ address: center }, (results, status) => {
+        if (status === 'OK') {
+          const { lat, lng } = results[0].geometry.location;
+          const newCenter = [lat(), lng()];
+          setMapCenter(newCenter);
+          
+          // Calculate map bounds based on center and radius
+          const radiusInDegrees = radius / 111; // Rough conversion from km to degrees
+          setMapBounds({
+            north: newCenter[0] + radiusInDegrees,
+            south: newCenter[0] - radiusInDegrees,
+            east: newCenter[1] + radiusInDegrees,
+            west: newCenter[1] - radiusInDegrees
+          });
+        }
+      });
+    }
+  }, [center, radius]);
+
   // Function to convert coordinates to relative positions
   const calculateMapPosition = (coordinates) => {
-    // Make sure coordinates exist and are in the correct format
-    if (!coordinates || !coordinates.latitude || !coordinates.longitude) {
-      console.error('Invalid coordinates:', coordinates);
+    // Make sure coordinates and bounds exist
+    if (!coordinates || !coordinates.latitude || !coordinates.longitude || !mapBounds) {
+      console.error('Invalid coordinates or bounds:', { coordinates, mapBounds });
       return { left: '50%', top: '50%' }; // Default to center if invalid
     }
-
-    // Define the map boundaries (Georgia Tech area)
-    const mapBounds = {
-      north: 33.7856, // Max latitude
-      south: 33.7656, // Min latitude
-      east: -84.3763, // Max longitude
-      west: -84.4063  // Min longitude
-    };
 
     // Calculate relative positions as percentages
     const left = ((coordinates.longitude - mapBounds.west) / (mapBounds.east - mapBounds.west) * 100);
@@ -95,6 +113,17 @@ const MapView = ({ listings }) => {
     };
   };
 
+  // Only show listings within the current bounds
+  const visibleListings = listings.filter(listing => {
+    if (!mapBounds) return true;
+    return (
+      listing.latitude >= mapBounds.south &&
+      listing.latitude <= mapBounds.north &&
+      listing.longitude >= mapBounds.west &&
+      listing.longitude <= mapBounds.east
+    );
+  });
+
   return (
     <div className="col-span-3 bg-white rounded-2xl h-[calc(100vh-240px)] overflow-hidden shadow-lg">
       <div className="h-full relative">
@@ -103,9 +132,9 @@ const MapView = ({ listings }) => {
           height="100%"
           loading="lazy"
           allowFullScreen
-          src={`https://www.google.com/maps/embed/v1/place?key=${process.env.REACT_APP_GOOGLE_MAPS_API_KEY}&q=Georgia+Tech,Atlanta+GA&zoom=14`}
+          src={`https://www.google.com/maps/embed/v1/place?key=${process.env.REACT_APP_GOOGLE_MAPS_API_KEY}&q=${encodeURIComponent(center)}&zoom=${zoom || 14}`}
         ></iframe>
-        {listings.map((listing) => {
+        {visibleListings.map((listing) => {
           const position = calculateMapPosition({
             latitude: listing.latitude,
             longitude: listing.longitude
@@ -166,8 +195,18 @@ export default function ImprovedSearchInterface() {
   });
   const [bidAmount, setBidAmount] = useState('');
   const [searchInput, setSearchInput] = useState('');
-  const [mapCenter, setMapCenter] = useState([33.7756, -84.3963]); // Georgia Tech coordinates
-  const [mapZoom, setMapZoom] = useState(13);
+  const [searchLocation, setSearchLocation] = useState('Atlanta, GA');
+
+  useEffect(() => {
+    // Get search params from URL
+    const params = new URLSearchParams(window.location.search);
+    const locationParam = params.get('location');
+    
+    if (locationParam) {
+      setSearchInput(locationParam);
+      setSearchLocation(locationParam);
+    }
+  }, []);
 
   useEffect(() => {
     const fetchListings = async () => {
@@ -177,7 +216,7 @@ export default function ImprovedSearchInterface() {
           q: searchInput,
           min_price: filters.priceRange[0],
           max_price: filters.priceRange[1],
-          location: filters.location || 'Atlanta', // Default to Atlanta
+          location: searchLocation,
         });
 
         if (filters.bedrooms > 0) params.append('bedrooms', filters.bedrooms);
@@ -186,6 +225,10 @@ export default function ImprovedSearchInterface() {
         
         const response = await api.get(`/search?${params.toString()}`);
         setListings(response.data.properties);
+
+        if (response.data.location) {
+          setSearchLocation(response.data.location);
+        }
       } catch (err) {
         console.error('Error fetching listings:', err);
         setError('Failed to fetch listings');
@@ -195,7 +238,7 @@ export default function ImprovedSearchInterface() {
     };
 
     fetchListings();
-  }, [searchInput, filters]);
+  }, [searchInput, filters, searchLocation]);
 
   const handleFilterChange = (filterName, value) => {
     setFilters(prevFilters => ({ ...prevFilters, [filterName]: value }));
@@ -227,6 +270,11 @@ export default function ImprovedSearchInterface() {
 
   const closeModal = (modalName) => {
     setModalState(prev => ({ ...prev, [modalName]: { isOpen: false, listing: null } }));
+  };
+
+  const handleSearchInputChange = (value) => {
+    setSearchInput(value);
+    setSearchLocation(value || 'Atlanta, GA');
   };
 
   return (
@@ -304,7 +352,7 @@ export default function ImprovedSearchInterface() {
         
       <div className="grid grid-cols-5 gap-8">
         <div className="col-span-3 bg-white rounded-2xl h-[calc(100vh-240px)] overflow-hidden shadow-lg">
-          <MapView listings={listings} center={mapCenter} zoom={mapZoom} radius={filters.radius} />
+          <MapView listings={listings} center={searchLocation} zoom={13} radius={filters.radius} />
         </div>
         <div className="col-span-2 space-y-6 overflow-y-auto h-[calc(100vh-240px)] pr-4">
           {loading ? (
