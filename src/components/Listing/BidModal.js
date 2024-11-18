@@ -15,6 +15,12 @@ export default function BidModal({ isOpen, onClose, listing, onBidPlaced }) {
       return;
     }
 
+    // Check if auction has ended
+    if (listing.auction_end_date && new Date(listing.auction_end_date) < new Date()) {
+      setError('This auction has ended');
+      return;
+    }
+
     setLoading(true);
     setError('');
 
