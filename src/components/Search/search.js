@@ -33,13 +33,26 @@ const AuctionTable = ({ bids }) => (
         </tr>
       </thead>
       <tbody className="bg-white divide-y divide-gray-200">
-        {bids.map((bid, index) => (
-          <tr key={index}>
-            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Anonymous {bid.id}</td>
-            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${bid.amount}</td>
-            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{bid.time}</td>
+        {bids?.map((bid) => (
+          <tr key={bid.id}>
+            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+              {bid.bidder?.name || 'Anonymous'}
+            </td>
+            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+              ${bid.amount.toLocaleString()}
+            </td>
+            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+              {new Date(bid.created_at).toLocaleString()}
+            </td>
           </tr>
         ))}
+        {(!bids || bids.length === 0) && (
+          <tr>
+            <td colSpan="3" className="px-6 py-4 text-center text-sm text-gray-500">
+              No bids yet
+            </td>
+          </tr>
+        )}
       </tbody>
     </table>
   </div>
@@ -51,10 +64,11 @@ const ListingCard = ({ listing, setModalState, navigate, user }) => {
 
   const fetchBids = async () => {
     try {
-      const response = await api.get(`/properties/${listing.id}/bids`);
-      setBids(response.data.bids);
+      const response = await api.get(`/properties/${listing.id}`);
+      setBids(response.data.bids || []);
     } catch (error) {
       console.error('Error fetching bids:', error);
+      setBids([]);
     }
   };
 
@@ -84,7 +98,7 @@ const ListingCard = ({ listing, setModalState, navigate, user }) => {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
+    <div className="max-w-[1400px] bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
       <Link to={`/listings/${listing.id}`} className="block">
         <div className="relative h-48">
           <img 
@@ -199,12 +213,16 @@ export default function ImprovedSearchInterface() {
   });
   const [searchInput, setSearchInput] = useState('');
   const [searchLocation, setSearchLocation] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+
   const [mapCenter, setMapCenter] = useState(null);
   const mapRef = useRef(null);
   const [bidAmount, setBidAmount] = useState('');
   const { user } = useAuth();
   const navigate = useNavigate();
 
+  
   const closeModal = (modalName) => {
     setModalState(prev => ({ ...prev, [modalName]: { isOpen: false, listing: null } }));
   };
@@ -309,30 +327,52 @@ export default function ImprovedSearchInterface() {
   };
 
   return (
-    <div className="max-w-[1400px] mx-auto p-6 font-sans bg-[#FFF8F0] min-h-screen">
+    <div className="max-w-[2400px] mx-auto p-6 font-sans bg-[#FFF8F0] min-h-screen">
       <div className="flex items-center space-x-2 mb-8">
-        <div className="flex-grow flex items-center space-x-2 bg-white rounded-full p-2 shadow-md border border-gray-200">
+      <div className="flex-grow flex items-center bg-white rounded-full p-2 shadow-md border border-gray-200">
+        {/* Left side: Location Input */}
+        <div className="flex items-center flex-grow space-x-2">
           <CitySearchAutocomplete
             onLocationSelect={handleLocationSelect}
             placeholder="Enter a location..."
             initialValue={searchLocation}
           />
-          <div className="w-px h-8 bg-gray-200"></div>
-          <input 
-            type="text" 
-            placeholder="Aug 1 - Dec 15" 
-            className="w-40 border-none bg-transparent text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-0 text-lg px-4"
-          />
+        </div>
+
+        {/* Vertical line separator */}
+        <div className="w-px h-8 bg-gray-200 mx-4"></div>
+
+        {/* Right side: From Date, To Date, and Search Button */}
+        <div className="flex items-center space-x-4 ml-auto">
+          <div className="flex items-center space-x-2">
+            <span className="text-gray-600 text-sm">From:</span>
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="w-40 border-none bg-transparent text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-0 text-lg px-4 py-2"
+            />
+          </div>
+          <div className="flex items-center space-x-2">
+            <span className="text-gray-600 text-sm">To:</span>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="w-40 border-none bg-transparent text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-0 text-lg px-4 py-2"
+            />
+          </div>
           <button className="bg-[#6B7FF0] text-white p-2 rounded-full hover:bg-[#5A6FE0] transition-colors">
             <Search className="h-6 w-6" />
           </button>
         </div>
       </div>
+    </div>
       
       <div className="flex space-x-4 mb-8 overflow-x-auto pb-2">
         <FilterButton 
           icon={DollarSign} 
-          label={`$${filters.priceRange[0]} - $${filters.priceRange[1]}`} 
+          label={`${filters.priceRange[0]} - ${filters.priceRange[1]}`} 
           onClick={() => setModalState(prev => ({ ...prev, priceRange: { isOpen: true } }))} 
           active={filters.priceRange[0] !== 0 || filters.priceRange[1] !== 5000}
         />

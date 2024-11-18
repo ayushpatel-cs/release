@@ -1,39 +1,61 @@
+/* header.css */
+
+@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@600&display=swap'); /* Rounded font for title */
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@400&display=swap'); /* Sleek font for links */
+
 .navbar {
     background-color: #f8f8f8;
     padding: 20px;
-  }
-  
-  .navbar-container {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.navbar-container {
     display: flex;
     justify-content: space-between;
     align-items: center;
     max-height: 100px;
-  }
-  
-  .navbar-left {
+    padding: 0 20px;
+}
+
+.navbar-left {
     display: flex;
     align-items: center;
-  }
-  
-  .navbar-image {
-    width: 100px;
-    margin-right: 10px;
-  }
-  
-  .navbar-title {
-    font-size: 4rem;
-    color: #7C93C3;
+}
+
+.navbar-image {
+    width: 80px;
+    margin-right: 15px;
+}
+
+.navbar-title {
+    font-family: 'Baloo 2', cursive;
+    font-size: 3rem;
+    color: #4a4a8a;
     margin: 0;
-  }
-  
-  .navbar-links {
+    font-weight: 600;
+    transition: color 0.3s ease;
+}
+
+.navbar-title:hover {
+    color: #7C93C3; /* Lighter shade for hover effect */
+}
+
+.navbar-links {
     display: flex;
     gap: 20px;
-  }
-  
-  .navbar-link {
+    align-items: center;
+}
+
+.navbar-link {
+    font-family: 'Open Sans', sans-serif;
     color: #4a4a8a;
     text-decoration: none;
-    font-size: 1.2rem;
-  }
-  
+    font-size: 1.3rem;
+    font-weight: 500;
+    transition: color 0.3s ease;
+}
+
+.navbar-link:hover {
+    color: #7C93C3; /* Slightly lighter shade on hover */
+    text-decoration: underline;
+}
