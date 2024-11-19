@@ -318,7 +318,9 @@ const ListingsTab = ({
   setNewListing,
   handleInputChange, 
   handleImageUpload, 
-  handleAddListing 
+  handleAddListing,
+  handleEditListing,
+  handleDeleteListing 
 }) => {
   const { active_listings = [], past_listings = [] } = listings || {};
 
@@ -327,7 +329,25 @@ const ListingsTab = ({
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Your Listings</h2>
         <button
-          onClick={() => setShowAddListingForm(true)}
+          onClick={() => {
+            setNewListing({
+              title: '',
+              description: '',
+              price: '',
+              address_line1: '',
+              city: '',
+              state: '',
+              zip_code: '',
+              formatted_address: '',
+              latitude: null,
+              longitude: null,
+              place_id: '',
+              image: null,
+              imageFile: null,
+              id: null, // Ensure ID is cleared for new listings
+            });
+            setShowAddListingForm(true);
+          }}
           className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg flex items-center transition duration-300"
         >
           <Plus className="mr-2" size={20} />
@@ -420,23 +440,23 @@ const ListingsTab = ({
                   />
                 </div>
               </div>
+              
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Images
+                  Images {newListing.id ? '(Optional)' : '(Required)'}
                 </label>
                 <input
                   type="file"
                   onChange={handleImageUpload}
                   className="w-full p-2 border border-gray-300 rounded-md"
                   accept="image/*"
-                  multiple
-                  required
+                  multiple={!newListing.id} // Allow multiple uploads only for new listings
                 />
                 {newListing.image && (
-                  <img 
-                    src={newListing.image} 
-                    alt="Preview" 
+                  <img
+                    src={newListing.image}
+                    alt="Preview"
                     className="mt-2 h-32 w-32 object-cover rounded-md"
                   />
                 )}
@@ -454,7 +474,7 @@ const ListingsTab = ({
                   type="submit"
                   className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
                 >
-                  Add Listing
+                  Save
                 </button>
               </div>
             </form>
@@ -465,32 +485,46 @@ const ListingsTab = ({
       {/* Active Listings */}
       {active_listings.length > 0 && (
         <div>
-          <h3 className="text-xl font-bold mb-4">Active Listings</h3>
-          <div className="space-y-4">
-            {active_listings.map(listing => (
-              <div key={listing.id} className="bg-white p-4 rounded-lg shadow flex">
-                <img 
-                  src={listing.images?.[0]?.image_url || '/placeholder.jpg'} 
-                  alt={listing.title} 
-                  className="w-32 h-32 object-cover rounded-lg mr-4"
-                  onError={(e) => {
-                    console.error('Listing image failed to load:', e.target.src);
-                    e.target.src = '/placeholder.jpg';
-                  }}
-                />
-                <div>
-                  <h3 className="font-semibold text-lg mb-1">{listing.title}</h3>
-                  <p className="text-gray-600 mb-1">{listing.address}</p>
-                  <p className="font-bold mb-1">${listing.min_price?.toLocaleString()}</p>
-                  <div className="flex items-center">
-                    <Star className="text-yellow-400 mr-1" size={16} />
-                    <span>{listing.rating || 'No ratings'} ({listing.reviews?.length || 0} reviews)</span>
-                  </div>
+        <h3 className="text-xl font-bold mb-4">Active Listings</h3>
+        <div className="space-y-4">
+          {active_listings.map(listing => (
+            <div key={listing.id} className="bg-white p-4 rounded-lg shadow flex">
+              <img 
+                src={listing.images?.[0]?.image_url || '/placeholder.jpg'} 
+                alt={listing.title} 
+                className="w-32 h-32 object-cover rounded-lg mr-4"
+                onError={(e) => {
+                  console.error('Listing image failed to load:', e.target.src);
+                  e.target.src = '/placeholder.jpg';
+                }}
+              />
+              <div className="flex-1">
+                <h3 className="font-semibold text-lg mb-1">{listing.title}</h3>
+                <p className="text-gray-600 mb-1">{listing.address}</p>
+                <p className="font-bold mb-1">${listing.min_price?.toLocaleString()}</p>
+                <div className="flex items-center">
+                  <Star className="text-yellow-400 mr-1" size={16} />
+                  <span>{listing.rating || 'No ratings'} ({listing.reviews?.length || 0} reviews)</span>
                 </div>
               </div>
-            ))}
-          </div>
+              <div className="flex flex-col justify-between ml-4">
+                <button
+                  onClick={() => handleEditListing(listing)}
+                  className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-green-600 mb-2"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={() => handleDeleteListing(listing.id)}
+                  className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-red-600"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
+      </div>      
       )}
 
       {/* Past Listings */}
@@ -579,53 +613,60 @@ export default function UserDashboard() {
     setNewListing(prev => ({ ...prev, [name]: value }))
   }
 
+  
+
   const handleAddListing = async (event) => {
     event.preventDefault();
     try {
       const formData = new FormData();
-      
-      // Basic listing details
-      formData.append('title', newListing.title);
-      formData.append('description', newListing.description);
-      formData.append('min_price', newListing.price);
-      
-      // Validate address details exist
-      if (!newListing.address_line1 || !newListing.city || !newListing.state || !newListing.zip_code) {
-        throw new Error('Address details are required');
+      formData.append('title', newListing.title || '');
+      formData.append('description', newListing.description || '');
+      formData.append('min_price', newListing.price || '');
+      formData.append('address_line1', newListing.address_line1 || '');
+      formData.append('city', newListing.city || '');
+      formData.append('state', newListing.state || '');
+      formData.append('zip_code', newListing.zip_code || '');
+      formData.append('formatted_address', newListing.formatted_address || '');
+      formData.append('latitude', newListing.latitude || '');
+      formData.append('longitude', newListing.longitude || '');
+      formData.append('place_id', newListing.place_id || '');
+  
+      if (newListing.id) {
+        // Edit existing listing
+        if (newListing.imageFile) {
+          formData.append('images', newListing.imageFile); // Include new image if updated
+        }
+        const response = await api.put(`/properties/${newListing.id}`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+        console.log('Listing updated:', response.data);
+      } else {
+        // Add new listing
+        if (
+          !newListing.title ||
+          !newListing.description ||
+          !newListing.price ||
+          !newListing.address_line1 ||
+          !newListing.city ||
+          !newListing.state ||
+          !newListing.zip_code
+        ) {
+          throw new Error('All required fields must be filled for new listings.');
+        }
+  
+        if (newListing.imageFile) {
+          formData.append('images', newListing.imageFile); // Image is required for new listings
+        }
+        formData.append('start_date', new Date().toISOString());
+        formData.append('end_date', new Date(new Date().setMonth(new Date().getMonth() + 3)).toISOString());
+  
+        const response = await api.post('/properties', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+        console.log('Property created:', response.data);
       }
-
-
-      // Add each address field individually
-      formData.append('address_line1', newListing.address_line1);
-      formData.append('city', newListing.city);
-      formData.append('state', newListing.state);
-      formData.append('zip_code', newListing.zip_code);
-      formData.append('formatted_address', newListing.formatted_address);
-      formData.append('latitude', newListing.latitude);
-      formData.append('longitude', newListing.longitude);
-      formData.append('place_id', newListing.place_id);
-      
-      // Dates
-      const today = new Date();
-      formData.append('start_date', today.toISOString());
-      formData.append('end_date', new Date(today.setMonth(today.getMonth() + 3)).toISOString());
-      
-      // Image
-      if (newListing.imageFile) {
-        formData.append('images', newListing.imageFile);
-      }
-      
-      // Debug log
-      for (let pair of formData.entries()) {
-        console.log('FormData entry:', pair[0], pair[1]);
-      }
-
-      const response = await api.post('/properties', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-
-      console.log('Property created:', response.data);
-
+  
+      // Close the form and reset the state
       setShowAddListingForm(false);
       setNewListing({
         title: '',
@@ -639,16 +680,49 @@ export default function UserDashboard() {
         latitude: null,
         longitude: null,
         place_id: '',
-        start_date: null,
-        end_date: null,
         image: null,
-        imageFile: null
+        imageFile: null,
+        id: null, // Reset ID after editing
       });
-      
+  
       await refreshData();
     } catch (error) {
-      console.error('Error creating property:', error);
-      alert('Failed to create listing: ' + (error.response?.data?.error || error.message));
+      console.error('Error creating/updating listing:', error);
+      alert('Failed to create/update listing: ' + (error.response?.data?.error || error.message));
+    }
+  };
+  
+  const handleEditListing = (listing) => {
+    setNewListing({
+      id: listing.id,
+      title: listing.title,
+      description: listing.description,
+      price: listing.min_price,
+      address_line1: listing.address_line1,
+      city: listing.city,
+      state: listing.state,
+      zip_code: listing.zip_code,
+      formatted_address: listing.formatted_address,
+      latitude: listing.latitude,
+      longitude: listing.longitude,
+      place_id: listing.place_id,
+      image: listing.images?.[0]?.image_url || null,
+      imageFile: null,
+    });
+    setShowAddListingForm(true);
+  };
+  
+  
+  const handleDeleteListing = async (listingId) => {
+    if (!window.confirm('Are you sure you want to delete this listing?')) return;
+  
+    try {
+      await api.delete(`/properties/${listingId}`);
+      console.log(`Listing ${listingId} deleted`);
+      await refreshData();
+    } catch (error) {
+      console.error('Error deleting listing:', error);
+      alert('Failed to delete listing: ' + (error.response?.data?.error || error.message));
     }
   };
 
@@ -768,6 +842,8 @@ export default function UserDashboard() {
             handleInputChange={handleInputChange}
             handleImageUpload={handleImageUpload}
             handleAddListing={handleAddListing}
+            handleEditListing={handleEditListing}
+            handleDeleteListing={handleDeleteListing}
           />
         )}
         {activeTab === 'bids' && <BidsTab />}
