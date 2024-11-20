@@ -292,25 +292,31 @@ export default function ImprovedSearchInterface() {
         longitude: mapCenter.lng,
         radius: filters.radius || 10
       });
-  
-      if (startDate) params.append('start_date', startDate);
-      if (endDate) params.append('end_date', endDate);
-  
-      if (filters.priceRange[0] > 0) params.append('min_price', filters.priceRange[0]);
-      if (filters.priceRange[1] < 5000) params.append('max_price', filters.priceRange[1]);
-      if (filters.bedrooms > 0) params.append('bedrooms', filters.bedrooms);
-      if (filters.bathrooms > 0) params.append('bathrooms', filters.bathrooms);
-      if (filters.propertyType) params.append('type', filters.propertyType);
-  
+
       const response = await api.get(`/search?${params.toString()}`);
-      setListings(response.data.properties);
+      let fetchedListings = response.data.properties;
+
+      // First apply price range filter
+      fetchedListings = fetchedListings.filter(listing => {
+        const price = listing.min_price || 0;
+        return price >= filters.priceRange[0] && price <= filters.priceRange[1];
+      });
+
+      // Then apply sorting if selected
+      if (filters.sortBy === 'price_asc') {
+        fetchedListings.sort((a, b) => (a.min_price || 0) - (b.min_price || 0));
+      } else if (filters.sortBy === 'price_desc') {
+        fetchedListings.sort((a, b) => (b.min_price || 0) - (a.min_price || 0));
+      }
+
+      setListings(fetchedListings);
     } catch (error) {
       console.error('Error fetching listings:', error);
       setError('Failed to fetch listings');
     } finally {
       setLoading(false);
     }
-  };
+};
 
   useEffect(() => {
     fetchListings();
@@ -420,7 +426,8 @@ export default function ImprovedSearchInterface() {
           icon={ArrowUpDown} 
           label={filters.sortBy === 'price_asc' ? 'Price: Low to High' : filters.sortBy === 'price_desc' ? 'Price: High to Low' : 'Relevance'} 
           onClick={() => {
-            const sortOptions = ['relevance', 'price_asc', 'price_desc'];
+            // Removed relevance since we'll handle sorting client-side
+            const sortOptions = ['price_asc', 'price_desc'];
             const currentIndex = sortOptions.indexOf(filters.sortBy);
             const nextIndex = (currentIndex + 1) % sortOptions.length;
             handleFilterChange('sortBy', sortOptions[nextIndex]);
@@ -524,37 +531,104 @@ export default function ImprovedSearchInterface() {
       </Modal>
 
       <Modal
-        isOpen={modalState.priceRange.isOpen}
-        onClose={() => closeModal('priceRange')}
-        title="Price Range"
-      >
-        <div className="mb-4">
-          <input
-            type="range"
-            min={0}
-            max={5000}
-            step={100}
-            value={filters.priceRange[1]}
-            onChange={(e) => handleFilterChange('priceRange', [filters.priceRange[0], parseInt(e.target.value)])}
-            className="w-full"
-          />
-          <div className="flex justify-between items-center mt-2">
-            <input
-              type="number"
-              value={filters.priceRange[0]}
-              onChange={(e) => handleFilterChange('priceRange', [parseInt(e.target.value), filters.priceRange[1]])}
-              className="w-24 p-2 border rounded text-center"
-            />
-            <span className="text-gray-500">to</span>
-            <input
-              type="number"
-              value={filters.priceRange[1]}
-              onChange={(e) => handleFilterChange('priceRange', [filters.priceRange[0], parseInt(e.target.value)])}
-              className="w-24 p-2 border rounded text-center"
-            />
-          </div>
-        </div>
-      </Modal>
+  isOpen={modalState.priceRange.isOpen}
+  onClose={() => closeModal('priceRange')}
+  title="Price Range"
+>
+  <div className="mb-4 px-4">
+    <div className="relative pt-6 pb-2">
+      <div className="absolute h-1 w-full bg-gray-200 rounded">
+        <div
+          className="absolute h-1 bg-blue-500 rounded"
+          style={{
+            left: `${(filters.priceRange[0] / 5000) * 100}%`,
+            right: `${100 - (filters.priceRange[1] / 5000) * 100}%`
+          }}
+        />
+      </div>
+      
+      {/* Min Range Input */}
+      <input
+        type="range"
+        min={0}
+        max={5000}
+        step={100}
+        value={filters.priceRange[0]}
+        onChange={(e) => {
+          const value = Math.min(parseInt(e.target.value), filters.priceRange[1] - 100);
+          handleFilterChange('priceRange', [value, filters.priceRange[1]]);
+        }}
+        className="absolute w-full top-0 h-6 appearance-none bg-transparent pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:bg-blue-500 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:ring-2 [&::-webkit-slider-thumb]:ring-blue-500 [&::-webkit-slider-thumb]:ring-offset-2 [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:bg-blue-500 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:ring-2 [&::-moz-range-thumb]:ring-blue-500 [&::-moz-range-thumb]:ring-offset-2"
+      />
+      
+      {/* Max Range Input */}
+      <input
+        type="range"
+        min={0}
+        max={5000}
+        step={100}
+        value={filters.priceRange[1]}
+        onChange={(e) => {
+          const value = Math.max(parseInt(e.target.value), filters.priceRange[0] + 100);
+          handleFilterChange('priceRange', [filters.priceRange[0], value]);
+        }}
+        className="absolute w-full top-0 h-6 appearance-none bg-transparent pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:bg-blue-500 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:ring-2 [&::-webkit-slider-thumb]:ring-blue-500 [&::-webkit-slider-thumb]:ring-offset-2 [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:bg-blue-500 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:ring-2 [&::-moz-range-thumb]:ring-blue-500 [&::-moz-range-thumb]:ring-offset-2"
+      />
+    </div>
+    
+    <div className="flex justify-between items-end mt-8">
+      <div>
+        <label className="block text-sm text-gray-600 mb-1">Min Price</label>
+        <input
+          type="number"
+          value={filters.priceRange[0]}
+          onChange={(e) => {
+            const value = Math.min(parseInt(e.target.value) || 0, filters.priceRange[1] - 100);
+            handleFilterChange('priceRange', [value, filters.priceRange[1]]);
+          }}
+          className="w-24 p-2 border rounded text-center focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        />
+      </div>
+      <span className="text-gray-500 mb-2">to</span>
+      <div>
+        <label className="block text-sm text-gray-600 mb-1">Max Price</label>
+        <input
+          type="number"
+          value={filters.priceRange[1]}
+          onChange={(e) => {
+            const value = Math.max(parseInt(e.target.value) || 0, filters.priceRange[0] + 100);
+            handleFilterChange('priceRange', [filters.priceRange[0], value]);
+          }}
+          className="w-24 p-2 border rounded text-center focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        />
+      </div>
+    </div>
+
+    <div className="mt-6">
+      <div className="text-sm text-gray-600 mb-2">Quick Select:</div>
+      <div className="grid grid-cols-2 gap-2">
+        {[
+          { label: "Under $1000", values: [0, 1000] },
+          { label: "$1000-$2000", values: [1000, 2000] },
+          { label: "$2000-$3000", values: [2000, 3000] },
+          { label: "$3000+", values: [3000, 5000] }
+        ].map(({ label, values }) => (
+          <button
+            key={label}
+            onClick={() => handleFilterChange('priceRange', values)}
+            className={`px-3 py-2 text-sm rounded-full border transition-colors
+              ${filters.priceRange[0] === values[0] && filters.priceRange[1] === values[1]
+                ? 'bg-blue-500 text-white border-blue-500'
+                : 'bg-white text-gray-700 border-gray-300 hover:border-blue-500'
+              }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+    </div>
+  </div>
+</Modal>
 
       <Modal
         isOpen={modalState.radius.isOpen}
@@ -625,4 +699,4 @@ export default function ImprovedSearchInterface() {
       </Modal>
     </div>
   );
-}
+} 
