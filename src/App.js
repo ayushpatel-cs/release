@@ -9,6 +9,7 @@ import Listing from './components/Listing/listing.js';
 import ListingDetail from './components/Listing/ListingDetail';
 import Login from './components/Login/login.js';
 import Profile from './components/Profile/profile.js';
+import ProtectedListingRoute from './components/Listing/ProtectedListingRoute';
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -24,6 +25,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Homepage />} />
           <Route path="/search" element={<Search />} />
+          <Route path="/listings/:id/user/:userId" element={<ProtectedListingRoute />} />
           <Route path="/listings/:id" element={<ListingDetail />} />
           <Route path="/listing" element={<Listing />} />
           <Route path="/login" element={<Login />} />

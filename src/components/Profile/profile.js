@@ -6,6 +6,7 @@ import api from '../../utils/api';
 import PropertyAddressAutocomplete from '../Common/PropertyAddressAutocomplete';
 import { useNavigate } from 'react-router-dom';
 
+
 // Move ProfileTab outside of UserDashboard
 const ProfileTab = ({ userData, onUpdateProfile, refreshData }) => {
   const [isEditing, setIsEditing] = useState(false);
@@ -23,6 +24,8 @@ const ProfileTab = ({ userData, onUpdateProfile, refreshData }) => {
     verifications: userData?.verifications || [],
     created_at: userData?.created_at || new Date().toISOString()
   });
+  const { user } = useAuth(); // Get the current authenticated user
+
   const [loading, setLoading] = useState(false);
 
   const fileInputRef = useRef(null);
@@ -323,7 +326,7 @@ const ListingsTab = ({
 }) => {
   const { active_listings = [], past_listings = [] } = listings || {};
   const navigate = useNavigate();
-
+  const {user} = useAuth();
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -473,7 +476,7 @@ const ListingsTab = ({
               <div
                 key={listing.id}
                 className="bg-white p-4 rounded-lg shadow flex cursor-pointer"
-                onClick={() => navigate(`/listings/${listing.id}`)}  // Navigate to details page
+                onClick={() => navigate(`/listings/${listing.id}/user/${user.id}`)} 
               >
                 <img
                   src={listing.images?.[0]?.image_url || '/placeholder.jpg'}
@@ -769,7 +772,7 @@ export default function UserDashboard() {
             handleInputChange={handleInputChange}
             handleImageUpload={handleImageUpload}
             handleAddListing={handleAddListing}
-          />
+C          />
         )}
         {activeTab === 'bids' && <BidsTab />}
       </div>
