@@ -51,12 +51,6 @@ const styles = {
     cursor: 'pointer',
     transition: 'background-color 0.3s',
   },
-  forgotPassword: {
-    marginTop: '20px',
-    color: '#8e9aaf',
-    textDecoration: 'none',
-    fontSize: '14px',
-  },
   toggleText: {
     marginTop: '20px',
     color: '#8e9aaf',
@@ -106,6 +100,7 @@ function Login() {
   const toggleForm = () => {
     setIsRegister(!isRegister);
     setError(''); // Clear the error message when toggling the form
+    setSuccessMessage(''); // Clear the success message when toggling the form
   };
 
   return (
@@ -166,11 +161,6 @@ function Login() {
             {isRegister ? 'REGISTER' : 'LOGIN'}
           </button>
         </form>
-        {!isRegister && (
-          <a href="#" style={styles.forgotPassword}>
-            Forgot password?
-          </a>
-        )}
         <p style={styles.toggleText} onClick={toggleForm}>
           {isRegister ? 'Already have an account? Click here to login' : "Don't have an account? Click here to register"}
         </p>
