@@ -671,6 +671,7 @@ export default function UserDashboard() {
 
   const handleImageUpload = (event) => {
     const files = Array.from(event.target.files);
+
     if (files.length < 5) {
       alert('Please upload at least 5 images.');
       event.target.value = ''; // Reset the input
