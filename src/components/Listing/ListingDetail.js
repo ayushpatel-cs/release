@@ -143,19 +143,46 @@ export default function ListingDetail() {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                 Time
               </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Start Date
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                End Date
+              </th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {bids?.map((bid) => (
               <tr key={bid.id}>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {bid.bidder?.name || 'Anonymous'}
+                  {'Anonymous'}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                   ${bid.amount.toLocaleString()}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {new Date(bid.created_at).toLocaleString()}
+                  {new Date(bid.created_at).toLocaleDateString('en-US', {
+                      timeZone: 'UTC',
+                      year: 'numeric',
+                      month: '2-digit',
+                      day: '2-digit',
+                    })}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {new Date(bid.start_date).toLocaleDateString('en-US', {
+                    timeZone: 'UTC', 
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit'
+                  })}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                {new Date(bid.end_date).toLocaleDateString('en-US', {
+                    timeZone: 'UTC', 
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit'
+                  })}
                 </td>
               </tr>
             ))}
@@ -335,10 +362,11 @@ export default function ListingDetail() {
               </div>
               {/* Owner Avatar */}
               <div>
-                <img
+              <img
                   src={user?.profile_image_url || '/default-avatar.png'}
                   alt={user?.name || 'Host'}
                   className="w-16 h-16 rounded-full"
+                  onError={(e) => { e.target.src = '/default-avatar.png'; }}
                 />
               </div>
             </section>
@@ -388,7 +416,7 @@ export default function ListingDetail() {
                 <h3 className="text-2xl font-bold">
                   ${listing.min_price.toLocaleString()}
                 </h3>
-                <p className="text-gray-600">Starting price</p>
+                <p className="text-gray-600">Suggested price</p>
               </div>
 
               {/* Auction Timer */}

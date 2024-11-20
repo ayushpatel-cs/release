@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { GoogleMap, useJsApiLoader, Marker, InfoWindow, Circle } from '@react-google-maps/api';
+import { GoogleMap, useJsApiLoader, Marker, Circle, InfoBox } from '@react-google-maps/api';
+import { useNavigate } from 'react-router-dom'; // Import useNavigate
 
 const GoogleMapComponent = ({ listings, center, zoom = 13, radius = 10 }) => {
   const { isLoaded, loadError } = useJsApiLoader({
@@ -7,30 +8,31 @@ const GoogleMapComponent = ({ listings, center, zoom = 13, radius = 10 }) => {
   });
 
   const [selectedListing, setSelectedListing] = useState(null);
+  const navigate = useNavigate(); // Initialize useNavigate
 
   const createCustomMarkerIcon = (price) => {
     const svg = `
-   <svg xmlns="http://www.w3.org/2000/svg" width="80" height="50" style="transition: transform 0.2s ease;">
-      <!-- Outer Shadow for Depth -->
-      <defs>
-        <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
-          <feOffset result="offOut" in="SourceAlpha" dx="0" dy="3" />
-          <feGaussianBlur result="blurOut" in="offOut" stdDeviation="5" />
-          <feBlend in="SourceGraphic" in2="blurOut" mode="normal" />
-        </filter>
-      </defs>
+      <svg xmlns="http://www.w3.org/2000/svg" width="80" height="50" style="transition: transform 0.2s ease;">
+        <!-- Outer Shadow for Depth -->
+        <defs>
+          <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+            <feOffset result="offOut" in="SourceAlpha" dx="0" dy="3" />
+            <feGaussianBlur result="blurOut" in="offOut" stdDeviation="5" />
+            <feBlend in="SourceGraphic" in2="blurOut" mode="normal" />
+          </filter>
+        </defs>
 
-      <!-- Main Rounded Background with Purple Color -->
-      <rect x="5" y="5" width="70" height="40" rx="20" ry="20" fill="#6B7FF0" filter="url(#shadow)" />
+        <!-- Main Rounded Background with Purple Color -->
+        <rect x="5" y="5" width="70" height="40" rx="20" ry="20" fill="#6B7FF0" filter="url(#shadow)" />
 
-      <!-- White Inner Ellipse for Border Effect -->
-      <rect x="8" y="8" width="64" height="34" rx="17" ry="17" fill="white" />
+        <!-- White Inner Ellipse for Border Effect -->
+        <rect x="8" y="8" width="64" height="34" rx="17" ry="17" fill="white" />
 
-      <!-- Price Text in the Center -->
-      <text x="50%" y="50%" text-anchor="middle" dy=".35em" font-size="18" fill="#6B7FF0" font-weight="bold" font-family="Arial, sans-serif">
-        $${parseInt(price)}
-      </text>
-    </svg>
+        <!-- Price Text in the Center -->
+        <text x="50%" y="50%" text-anchor="middle" dy=".35em" font-size="18" fill="#6B7FF0" font-weight="bold" font-family="Arial, sans-serif">
+          $${parseInt(price)}
+        </text>
+      </svg>
     `;
     const encoded = encodeURIComponent(svg);
     return {
@@ -88,7 +90,7 @@ const GoogleMapComponent = ({ listings, center, zoom = 13, radius = 10 }) => {
     >
       <Circle
         center={center}
-        radius={radius * 1609.34}
+        radius={radius * 1609.34} // Convert miles to meters
         options={{
           strokeColor: '#6B7FF0',
           strokeOpacity: 0.8,
@@ -114,47 +116,64 @@ const GoogleMapComponent = ({ listings, center, zoom = 13, radius = 10 }) => {
       })}
 
       {selectedListing && (
-        <InfoWindow
+        <InfoBox
           position={{
             lat: parseFloat(selectedListing.latitude) + 0.002, // Offset to move it above the marker
             lng: parseFloat(selectedListing.longitude),
           }}
           onCloseClick={() => setSelectedListing(null)}
+          options={{
+            closeBoxURL: "", // Hide default close box
+            enableEventPropagation: true,
+          }}
         >
-          <div className="w-40 h-40 flex flex-col items-start">
-            {/* Conditionally render the image section if an image is available */}
-            {selectedListing.image_url ? (
-              <>
-                <img
-                  src={selectedListing.image_url}
-                  alt={selectedListing.title}
-                  className="w-full h-24 object-cover rounded-t-md"
-                />
-                <div className="p-2 bg-white w-full rounded-b-md shadow-md">
-                  <h2 className="text-[#6B7FF0] font-semibold text-sm">${selectedListing.min_price}</h2>
-                  <p className="text-gray-700 text-xs font-medium">{selectedListing.title}</p>
-                  {selectedListing.rating && (
-                    <div className="flex items-center mt-1">
-                      <span className="text-yellow-500 text-xs mr-1">⭐</span>
-                      <span className="text-gray-500 text-xs">{selectedListing.rating}</span>
-                    </div>
-                  )}
+          <div className="relative bg-white rounded-lg shadow-lg border border-gray-200 w-60 cursor-pointer">
+            {/* Custom Close Button */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation(); // Prevent the click from propagating to the InfoBox
+                setSelectedListing(null);
+              }}
+              className="absolute top-1 right-1 text-gray-500 hover:text-gray-700"
+              style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '16px' }}
+              aria-label="Close InfoWindow"
+            >
+              &#10005; {/* Unicode for 'x' */}
+            </button>
+            {/* Listing Image */}
+            <img
+              src={selectedListing.images && selectedListing.images.length > 0 ? selectedListing.images[0].image_url : '/placeholder.jpg'}
+              alt={selectedListing.title}
+              className="w-full h-32 object-cover rounded-t-lg"
+              style={{ width: '240px', height: '160px' }} // Fixed size
+              onError={(e) => { e.target.onerror = null; e.target.src = '/placeholder.jpg'; }} // Fallback on error
+            />
+            {/* Listing Details */}
+            <div
+              className="p-2"
+              onClick={() => navigate(`/listings/${selectedListing.id}`)} // Navigate on InfoBox content click
+            >
+              <h2 className="text-[#6B7FF0] font-semibold text-sm">${selectedListing.min_price.toLocaleString()}</h2>
+              <p className="text-gray-700 text-xs font-medium truncate">{selectedListing.title}</p>
+              {selectedListing.rating && (
+                <div className="flex items-center mt-1">
+                  <span className="text-yellow-500 text-xs mr-1">⭐</span>
+                  <span className="text-gray-500 text-xs">{selectedListing.rating}</span>
                 </div>
-              </>
-            ) : (
-              <div className="p-2 bg-white w-full h-full flex flex-col justify-end items-start rounded-md shadow-md">
-                <h2 className="text-[#6B7FF0] font-semibold text-sm">${selectedListing.min_price}</h2>
-                <p className="text-gray-700 text-xs font-medium">{selectedListing.title}</p>
-                {selectedListing.rating && (
-                  <div className="flex items-center mt-1">
-                    <span className="text-yellow-500 text-xs mr-1">⭐</span>
-                    <span className="text-gray-500 text-xs">{selectedListing.rating}</span>
-                  </div>
-                )}
-              </div>
-            )}
+              )}
+              {/* Optional: Add a "View Listing" Button */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation(); // Prevent the click from propagating to the parent div
+                  navigate(`/listings/${selectedListing.id}`);
+                }}
+                className="mt-2 px-2 py-1 bg-[#6B7FF0] text-white text-xs rounded hover:bg-[#5A6FE0] transition-colors"
+              >
+                View Listing
+              </button>
+            </div>
           </div>
-        </InfoWindow>
+        </InfoBox>
       )}
     </GoogleMap>
   );

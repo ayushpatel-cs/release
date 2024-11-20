@@ -191,7 +191,7 @@ export default function ImprovedSearchInterface() {
     bathrooms: 0,
     propertyType: '',
     amenities: [],
-    radius: 1,
+    radius: 10,
     sortBy: 'relevance'
   });
   const [modalState, setModalState] = useState({
@@ -398,12 +398,12 @@ export default function ImprovedSearchInterface() {
           onClick={() => handleFilterChange('bathrooms', (filters.bathrooms + 1) % 4)} 
           active={filters.bathrooms > 0}
         />
-        <FilterButton  
+        {/* <FilterButton  
           icon={Home} 
           label={filters.propertyType || "Property Type"} 
           onClick={() => setModalState(prev => ({ ...prev, propertyType: { isOpen: true } }))} 
           active={filters.propertyType !== ''}
-        />
+        /> */}
         <FilterButton 
           icon={Wifi} 
           label={`Amenities (${filters.amenities.length})`} 

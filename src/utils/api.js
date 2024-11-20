@@ -14,6 +14,9 @@ const baseURL = apiUrl.startsWith('http')
   ? apiUrl 
   : `${window.location.protocol}//${apiUrl}`;
 
+// Extract the base backend URL (without /api)
+export const backendUrl = baseURL.replace(/\/api$/, '');
+
 console.log('Final baseURL:', baseURL);
 
 const api = axios.create({
@@ -29,6 +32,13 @@ api.interceptors.request.use(config => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  
+  // If the request contains FormData, remove the Content-Type header
+  // to let the browser set it automatically with the boundary
+  if (config.data instanceof FormData) {
+    delete config.headers['Content-Type'];
+  }
+  
   return config;
 });
 

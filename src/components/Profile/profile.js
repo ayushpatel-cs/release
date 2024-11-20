@@ -349,8 +349,8 @@ const ListingsTab = ({
               latitude: null,
               longitude: null,
               place_id: '',
-              image: null,
-              imageFile: null,
+              images: [],
+              imageFiles: [],
               auction_end_date: null,
               start_date: null,
               end_date: null,
@@ -474,7 +474,7 @@ const ListingsTab = ({
 
               <div>
                 <label htmlFor="price" className="block text-med font-bold mb-4 text-gray-700 mb-1">
-                  Starting Price
+                  Suggested Price
                 </label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
@@ -925,7 +925,11 @@ export default function UserDashboard() {
         console.log('Listing updated:', response.data);
       } else {
         // Add new listing
-        const response = await api.post('/properties', formData);
+        const response = await api.post('/properties', formData,{
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
         console.log('Property created:', response.data);
       }
   
