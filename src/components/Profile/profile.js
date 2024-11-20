@@ -368,11 +368,14 @@ const ListingsTab = ({
 
       {showAddListingForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+        <div
+          className="bg-white rounded-lg p-8 w-full max-w-2xl" // Increased max-width and padding
+          style={{ maxHeight: '90vh', overflowY: 'auto' }} // Increased height for better visibility
+        >
             <h3 className="text-xl font-bold mb-4">Add New Listing</h3>
             <form onSubmit={handleAddListing} className="space-y-4">
               <div>
-                <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="title" className="block text-lg font-bold mb-4 text-gray-700 mb-1">
                   Title
                 </label>
                 <input
@@ -387,7 +390,7 @@ const ListingsTab = ({
               </div>
 
               <div>
-                <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="description" className="block text-med font-bold mb-4 text-gray-700 mb-1">
                   Description
                 </label>
                 <textarea
@@ -401,7 +404,7 @@ const ListingsTab = ({
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-med font-bold mb-4 text-gray-700 mb-1">
                   Address
                 </label>
                 <PropertyAddressAutocomplete
@@ -419,12 +422,12 @@ const ListingsTab = ({
                       place_id: locationData.place_id,
                     }));
                   }}
-                  placeholder="Enter property address"
+                  placeholder={newListing.address_line1 || 'Enter property address'} // Pre-fill for editing
                 />
               </div>
 
               <div>
-                <label htmlFor="start_date" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="start_date" className="block text-med font-bold mb-4 text-gray-700 mb-1">
                   Start Date
                 </label>
                 <input
@@ -438,7 +441,7 @@ const ListingsTab = ({
                 />
               </div>
               <div>
-                <label htmlFor="end_date" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="end_date" className="block text-med font-bold mb-4 text-gray-700 mb-1">
                   End Date
                 </label>
                 <input
@@ -453,7 +456,7 @@ const ListingsTab = ({
               </div>
 
               <div>
-                <label htmlFor="auction_end_date" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="auction_end_date" className="block text-med font-bold mb-4 text-gray-700 mb-1">
                   Auction End Date
                 </label>
                 <input
@@ -470,8 +473,8 @@ const ListingsTab = ({
 
 
               <div>
-                <label htmlFor="price" className="block text-sm font-medium text-gray-700 mb-1">
-                  Minimum Price
+                <label htmlFor="price" className="block text-med font-bold mb-4 text-gray-700 mb-1">
+                  Starting Price
                 </label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
@@ -488,9 +491,186 @@ const ListingsTab = ({
                   />
                 </div>
               </div> 
+              {/* Number of Bathrooms */}
+              <div>
+                <label htmlFor="bathrooms" className="block text-med font-bold mb-4 text-gray-700 mb-1">
+                  Number of Bathrooms (in apartment)
+                </label>
+                <input
+                  type="number"
+                  id="bathrooms"
+                  name="bathrooms"
+                  value={newListing.bathrooms || ''}
+                  onChange={handleInputChange}
+                  className="w-full p-2 border border-gray-300 rounded-md"
+                  min="0"
+                  step="1"
+                  required
+                />
+              </div>
+
+              {/* Number of Bedrooms */}
+              <div>
+                <label htmlFor="bedrooms" className="block text-med font-bold mb-4 text-gray-700 mb-1">
+                  Number of Bedrooms (in apartment)
+                </label>
+                <input
+                  type="number"
+                  id="bedrooms"
+                  name="bedrooms"
+                  value={newListing.bedrooms || ''}
+                  onChange={handleInputChange}
+                  className="w-full p-2 border border-gray-300 rounded-md"
+                  min="0"
+                  step="1"
+                  required
+                />
+              </div>
+
+              
+              {/* Guest Favorites Section */}
+              <div>
+                <h3 className="text-lg font-bold mb-4">Do you have these main amenities?</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {[
+                    { label: "Wifi" },
+                    { label: "TV" },
+                    { label: "Kitchen" },
+                    { label: "Washer" },
+                    { label: "Free parking on premises" },
+                    { label: "Paid parking on premises" },
+                    { label: "Air conditioning" },
+                    { label: "Study spaces" },
+                  ].map((amenity) => {
+                    const isSelected =
+                      newListing.amenities && newListing.amenities.includes(amenity.label);
+                    return (
+                      <button
+                        key={amenity.label}
+                        type="button"
+                        className={`flex items-center justify-center p-4 border rounded-lg transition ${
+                          isSelected
+                            ? "bg-blue-500 text-white border-blue-500"
+                            : "border-gray-300 hover:bg-blue-100 hover:border-blue-400"
+                        }`}
+                        onClick={() => {
+                          setNewListing((prev) => {
+                            const amenities = prev.amenities || [];
+                            if (amenities.includes(amenity.label)) {
+                              // Remove the amenity if already selected
+                              return {
+                                ...prev,
+                                amenities: amenities.filter((item) => item !== amenity.label),
+                              };
+                            } else {
+                              // Add the amenity if not selected
+                              return { ...prev, amenities: [...amenities, amenity.label] };
+                            }
+                          });
+                        }}
+                      >
+                        <span className="text-sm font-medium">{amenity.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Standout Amenities Section */}
+              <div>
+                <h3 className="text-lg font-bold mb-4">Do you have any standout amenities?</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {[
+                    { label: "Pool" },
+                    { label: "Hot tub" },
+                    { label: "BBQ grill" },
+                    { label: "Pool table" },
+                    { label: "Piano" },
+                    { label: "Exercise equipment/gym" },
+                  ].map((amenity) => {
+                    const isSelected =
+                      newListing.amenities && newListing.amenities.includes(amenity.label);
+                    return (
+                      <button
+                        key={amenity.label}
+                        type="button"
+                        className={`flex items-center justify-center p-4 border rounded-lg transition ${
+                          isSelected
+                            ? "bg-blue-500 text-white border-blue-500"
+                            : "border-gray-300 hover:bg-blue-100 hover:border-blue-400"
+                        }`}
+                        onClick={() => {
+                          setNewListing((prev) => {
+                            const amenities = prev.amenities || [];
+                            if (amenities.includes(amenity.label)) {
+                              // Remove the amenity if already selected
+                              return {
+                                ...prev,
+                                amenities: amenities.filter((item) => item !== amenity.label),
+                              };
+                            } else {
+                              // Add the amenity if not selected
+                              return { ...prev, amenities: [...amenities, amenity.label] };
+                            }
+                          });
+                        }}
+                      >
+                        <span className="text-sm font-medium">{amenity.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Safety Items Section */}
+              <div>
+                <h3 className="text-lg font-bold mb-4">Do you have any of these safety items?</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {[
+                    { label: "Smoke alarm" },
+                    { label: "First aid kit" },
+                    { label: "Fire extinguisher" },
+                    { label: "Carbon monoxide alarm" },
+                  ].map((amenity) => {
+                    const isSelected =
+                      newListing.amenities && newListing.amenities.includes(amenity.label);
+                    return (
+                      <button
+                        key={amenity.label}
+                        type="button"
+                        className={`flex items-center justify-center p-4 border rounded-lg transition ${
+                          isSelected
+                            ? "bg-blue-500 text-white border-blue-500"
+                            : "border-gray-300 hover:bg-blue-100 hover:border-blue-400"
+                        }`}
+                        onClick={() => {
+                          setNewListing((prev) => {
+                            const amenities = prev.amenities || [];
+                            if (amenities.includes(amenity.label)) {
+                              // Remove the amenity if already selected
+                              return {
+                                ...prev,
+                                amenities: amenities.filter((item) => item !== amenity.label),
+                              };
+                            } else {
+                              // Add the amenity if not selected
+                              return { ...prev, amenities: [...amenities, amenity.label] };
+                            }
+                          });
+                        }}
+                      >
+                        <span className="text-sm font-medium">{amenity.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+
+
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-med font-medium text-gray-700 mb-1">
                   Images {newListing.id ? '(Optional)' : '(Required)'}
                 </label>
                 <input
@@ -777,22 +957,27 @@ export default function UserDashboard() {
   const handleEditListing = (listing) => {
     setNewListing({
       id: listing.id,
-      title: listing.title,
-      description: listing.description,
-      price: listing.min_price,
-      address_line1: listing.address_line1,
-      city: listing.city,
-      state: listing.state,
-      zip_code: listing.zip_code,
-      formatted_address: listing.formatted_address,
-      latitude: listing.latitude,
-      longitude: listing.longitude,
-      place_id: listing.place_id,
-      image: listing.images?.[0]?.image_url || null,
-      imageFile: null,
+      title: listing.title || '',
+      description: listing.description || '',
+      address_line1: listing.address_line1 || '',
+      city: listing.city || '',
+      state: listing.state || '',
+      zip_code: listing.zip_code || '',
+      formatted_address: listing.formatted_address || '',
+      latitude: listing.latitude || null,
+      longitude: listing.longitude || null,
+      place_id: listing.place_id || '',
+      start_date: listing.start_date ? listing.start_date.split('T')[0] : '', // Format as YYYY-MM-DD
+      end_date: listing.end_date ? listing.end_date.split('T')[0] : '', // Format as YYYY-MM-DD
+      auction_end_date: listing.auction_end_date ? listing.auction_end_date.split('T')[0] : '',
+      price: listing.min_price || '',
+      bedrooms: listing.bedrooms || 0,
+      bathrooms: listing.bathrooms || 0,
+      amenities: listing.amenities || [], // Ensure amenities are loaded
     });
-    setShowAddListingForm(true);
+    setShowAddListingForm(true); // Open the form
   };
+  
   
   
   const handleDeleteListing = async (listingId) => {
