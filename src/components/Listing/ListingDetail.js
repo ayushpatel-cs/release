@@ -10,10 +10,10 @@ export default function ListingDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [bidAmount, setBidAmount] = useState('');
+  const [timeLeft, setTimeLeft] = useState('');
   const { id } = useParams();
   const navigate = useNavigate();
 
-  // New state variables for the modal
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
@@ -35,18 +35,61 @@ export default function ListingDetail() {
     fetchListing();
   }, [id]);
 
+    // Update countdown timer
+    useEffect(() => {
+      if (!listing?.auction_end_date) return;
+
+      const updateTimer = () => {
+        const now = new Date();
+        const end = new Date(listing.auction_end_date);
+        const diff = end - now;
+
+        if (diff <= 0) {
+          setTimeLeft('Auction ended');
+          return;
+        }
+
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+        setTimeLeft(`${days}d ${hours}h ${minutes}m ${seconds}s`);
+      };
+
+      updateTimer();
+      const timer = setInterval(updateTimer, 1000);
+
+      return () => clearInterval(timer);
+    }, [listing?.auction_end_date]);
+
   const handleBid = async () => {
     try {
       await api.post(`/bids/properties/${id}/bids`, {
-        amount: parseFloat(bidAmount)
+        amount: parseInt(bidAmount)
       });
-      // Refresh listing data after bid
+      
+      // Show success message
+      alert('Bid placed successfully!');
+      
+      // Refresh listing data
       const response = await api.get(`/properties/${id}`);
       setListing(response.data);
     } catch (error) {
       console.error('Error placing bid:', error);
-      alert('Failed to place bid');
+      alert('Failed to place bid: ' + (error.response?.data?.error || error.message));
     }
+  };
+
+  const isAuctionEnded = () => {
+    if (!listing?.auction_end_date) return false;
+    return new Date(listing.auction_end_date) <= new Date();
+  };
+
+  // Calculate bid competitiveness (matching search page functionality)
+  const getBidCompetitiveness = () => {
+    if (!bidAmount || !listing?.min_price) return 0;
+    return Math.min(100, (parseInt(bidAmount) / listing.min_price) * 100);
   };
 
   // Add a new BidHistory component
@@ -235,28 +278,64 @@ export default function ListingDetail() {
                 <p className="text-gray-600">Starting price</p>
               </div>
 
+              {/* Auction Timer */}
               <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Your bid amount
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
-                  <input
-                    type="number"
-                    value={bidAmount}
-                    onChange={(e) => setBidAmount(e.target.value)}
-                    className="w-full pl-8 pr-4 py-2 border rounded-lg"
-                    min={listing.min_price}
-                  />
+                <div className={`p-4 rounded-lg ${isAuctionEnded() ? 'bg-red-100' : 'bg-green-100'}`}>
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-5 h-5" />
+                    <span className="font-medium">Auction {isAuctionEnded() ? 'ended' : 'ends in'}:</span>
+                  </div>
+                  <div className="mt-2">
+                    {isAuctionEnded() ? (
+                      <span className="text-red-600 font-bold">Auction has ended</span>
+                    ) : (
+                      <>
+                        <div className="text-lg font-bold text-green-600">{timeLeft}</div>
+                        <div className="text-sm text-gray-600 mt-1">
+                          Ends on {new Date(listing.auction_end_date).toLocaleString()}
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
 
-              <button
-                onClick={handleBid}
-                className="w-full bg-blue-500 text-white py-3 rounded-lg hover:bg-blue-600 transition-colors"
-              >
-                Place Bid
-              </button>
+              {!isAuctionEnded() && (
+                <>
+                  <div className="mb-6">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Your bid amount
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+                      <input
+                        type="number"
+                        value={bidAmount}
+                        onChange={(e) => setBidAmount(e.target.value)}
+                        className="w-full pl-8 pr-4 py-2 border rounded-lg"
+                        min={listing.min_price}
+                      />
+                    </div>
+                    {/* Add bid competitiveness indicator */}
+                    <div className="mt-4">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Bid Competitiveness:</label>
+                      <div className="w-full bg-gray-200 rounded-full h-2.5">
+                        <div 
+                          className="bg-blue-600 h-2.5 rounded-full" 
+                          style={{ width: `${getBidCompetitiveness()}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={handleBid}
+                    className="w-full bg-blue-500 text-white py-3 rounded-lg hover:bg-blue-600 transition-colors"
+                  >
+                    Place Bid
+                  </button>
+                </>
+              )}
 
               <div className="mt-4 text-sm text-gray-500">
                 {listing.bids?.length || 0} bids so far
