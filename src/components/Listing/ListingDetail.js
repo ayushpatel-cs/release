@@ -413,7 +413,7 @@ export default function ListingDetail() {
                 <h3 className="text-2xl font-bold">
                   ${listing.min_price.toLocaleString()}
                 </h3>
-                <p className="text-gray-600">Starting price</p>
+                <p className="text-gray-600">Suggested price</p>
               </div>
 
               {/* Auction Timer */}
