@@ -402,6 +402,36 @@ const ListingsTab = ({
               </div>
 
               <div>
+                <label htmlFor="start_date" className="block text-sm font-medium text-gray-700 mb-1">
+                  Start Date
+                </label>
+                <input
+                  type="date"
+                  id="start_date"
+                  name="start_date"
+                  value={newListing.start_date}
+                  onChange={handleInputChange}
+                  className="w-full p-2 border border-gray-300 rounded-md"
+                  required
+                />
+              </div>
+
+              <div>
+                <label htmlFor="end_date" className="block text-sm font-medium text-gray-700 mb-1">
+                  End Date
+                </label>
+                <input
+                  type="date"
+                  id="end_date"
+                  name="end_date"
+                  value={newListing.end_date}
+                  onChange={handleInputChange}
+                  className="w-full p-2 border border-gray-300 rounded-md"
+                  required
+                />
+              </div>
+
+              <div>
                 <label htmlFor="price" className="block text-sm font-medium text-gray-700 mb-1">
                   Minimum Price
                 </label>
@@ -433,12 +463,17 @@ const ListingsTab = ({
                   multiple
                   required
                 />
-                {newListing.image && (
-                  <img 
-                    src={newListing.image} 
-                    alt="Preview" 
-                    className="mt-2 h-32 w-32 object-cover rounded-md"
-                  />
+                {newListing.images && newListing.images.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {newListing.images.map((image, index) => (
+                      <img 
+                        key={index}
+                        src={image}
+                        alt={`Preview ${index + 1}`}
+                        className="h-32 w-32 object-cover rounded-md"
+                      />
+                    ))}
+                  </div>
                 )}
               </div>
 
@@ -547,8 +582,10 @@ export default function UserDashboard() {
     latitude: null,
     longitude: null,
     place_id: '',
-    image: null,
-    imageFile: null
+    images: [],
+    imageFiles: [],
+    start_date: '', // Add this line
+    end_date: ''    // Add this line
   });
 
   if (loading) {
@@ -564,16 +601,24 @@ export default function UserDashboard() {
   }
 
   const handleImageUpload = (event) => {
-    const file = event.target.files[0];
-    if (file) {
+    const files = Array.from(event.target.files);
+
+    if (files.length < 5) {
+      alert('Please upload at least 5 images.');
+      event.target.value = ''; // Reset the input
+      return;
+    }
+
+    if (files.length >= 5) {
+      const imagePreviews = files.map(file => URL.createObjectURL(file));
       setNewListing(prev => ({ 
         ...prev, 
-        image: URL.createObjectURL(file),
-        imageFile: file  // Store the actual file
+        images: imagePreviews,
+        imageFiles: files
       }));
     }
   };
-
+  
   const handleInputChange = (event) => {
     const { name, value } = event.target
     setNewListing(prev => ({ ...prev, [name]: value }))
@@ -606,13 +651,17 @@ export default function UserDashboard() {
       formData.append('place_id', newListing.place_id);
       
       // Dates
-      const today = new Date();
-      formData.append('start_date', today.toISOString());
-      formData.append('end_date', new Date(today.setMonth(today.getMonth() + 3)).toISOString());
-      
+      if (!newListing.start_date || !newListing.end_date) {
+        throw new Error('Start date and end date are required');
+      }
+      formData.append('start_date', new Date(newListing.start_date).toISOString());
+      formData.append('end_date', new Date(newListing.end_date).toISOString());
+
       // Image
-      if (newListing.imageFile) {
-        formData.append('images', newListing.imageFile);
+      if (newListing.imageFiles && newListing.imageFiles.length > 0) {
+        newListing.imageFiles.forEach(file => {
+          formData.append('images', file);
+        });
       }
       
       // Debug log
@@ -639,10 +688,8 @@ export default function UserDashboard() {
         latitude: null,
         longitude: null,
         place_id: '',
-        start_date: null,
-        end_date: null,
-        image: null,
-        imageFile: null
+        images: [],       // Reset images array
+        imageFiles: []    // Reset imageFiles array
       });
       
       await refreshData();
