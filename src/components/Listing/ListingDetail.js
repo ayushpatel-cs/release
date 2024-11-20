@@ -21,7 +21,9 @@ export default function ListingDetail() {
   const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  
   useEffect(() => {
     const fetchListing = async () => {
       setLoading(true);
@@ -77,26 +79,39 @@ export default function ListingDetail() {
 
   const handleBid = async () => {
     try {
+      if (!startDate || !endDate) {
+        alert('Please select both start and end dates');
+        return;
+      }
+  
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+  
+      if (start >= end) {
+        alert('End date must be after start date');
+        return;
+      }
+  
       await api.post(`/bids/properties/${id}/bids`, {
         amount: parseInt(bidAmount),
+        start_date: startDate,
+        end_date: endDate
       });
-
+  
       // Show success message
       alert('Bid placed successfully!');
-
+  
       // Refresh listing data
       const response = await api.get(`/properties/${id}`);
       const listingData = response.data;
       setListing(listingData);
-
+  
       // Refresh user data in case it changed
       const userResponse = await api.get(`/users/${listingData.user_id}`);
       setUser(userResponse.data);
     } catch (error) {
       console.error('Error placing bid:', error);
-      alert(
-        'Failed to place bid: ' + (error.response?.data?.error || error.message)
-      );
+      alert('Failed to place bid: ' + (error.response?.data?.error || error.message));
     }
   };
 
@@ -423,46 +438,75 @@ export default function ListingDetail() {
                 </div>
               </div>
 
-              {!isAuctionEnded() && (
-                <>
-                  <div className="mb-6">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Your bid amount
-                    </label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
-                        $
-                      </span>
-                      <input
-                        type="number"
-                        value={bidAmount}
-                        onChange={(e) => setBidAmount(e.target.value)}
-                        className="w-full pl-8 pr-4 py-2 border rounded-lg"
-                        min={listing.min_price}
-                      />
-                    </div>
-                    {/* Bid competitiveness indicator */}
-                    <div className="mt-4">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Bid Competitiveness:
-                      </label>
-                      <div className="w-full bg-gray-200 rounded-full h-2.5">
-                        <div
-                          className="bg-blue-600 h-2.5 rounded-full"
-                          style={{ width: `${getBidCompetitiveness()}%` }}
-                        />
-                      </div>
-                    </div>
+                        {!isAuctionEnded() && (
+            <>
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Your bid amount
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
+                    $
+                  </span>
+                  <input
+                    type="number"
+                    value={bidAmount}
+                    onChange={(e) => setBidAmount(e.target.value)}
+                    className="w-full pl-8 pr-4 py-2 border rounded-lg"
+                    min={listing.min_price}
+                  />
+                </div>
+                
+                {/* Bid competitiveness indicator */}
+                <div className="mt-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Bid Competitiveness:
+                  </label>
+                  <div className="w-full bg-gray-200 rounded-full h-2.5">
+                    <div
+                      className="bg-blue-600 h-2.5 rounded-full"
+                      style={{ width: `${getBidCompetitiveness()}%` }}
+                    />
                   </div>
+                </div>
 
-                  <button
-                    onClick={handleBid}
-                    className="w-full bg-blue-500 text-white py-3 rounded-lg hover:bg-blue-600 transition-colors"
-                  >
-                    Place Bid
-                  </button>
-                </>
-              )}
+                {/* Date Selection */}
+                <div className="mt-4 space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Start Date
+                    </label>
+                    <input
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                      className="w-full p-2 border rounded-lg"
+                      min={new Date().toISOString().split('T')[0]}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      End Date
+                    </label>
+                    <input
+                      type="date"
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                      className="w-full p-2 border rounded-lg"
+                      min={startDate || new Date().toISOString().split('T')[0]}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <button
+                onClick={handleBid}
+                className="w-full bg-blue-500 text-white py-3 rounded-lg hover:bg-blue-600 transition-colors"
+              >
+                Place Bid
+              </button>
+            </>
+          )}
 
               <div className="mt-4 text-sm text-gray-500">
                 {listing.bids?.length || 0} bids so far
