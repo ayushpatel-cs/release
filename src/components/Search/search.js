@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Sliders, Wifi, UtensilsCrossed, Dumbbell, Pencil, DollarSign, Bed, Bath, Home, Info, MapPin, ArrowUpDown } from 'lucide-react';
+import { Search, Sliders, Wifi, UtensilsCrossed, Dumbbell, Pencil, DollarSign, Bed, Bath, Home, MapPin, ArrowUpDown } from 'lucide-react';
 import homepageImage from '../../images/homepage.png';
 import apartment2Image from '../../images/apartment_2.webp';
 import apartment3Image from '../../images/apartment_3.jpg';
@@ -90,13 +90,6 @@ const ListingCard = ({ listing, setModalState, navigate, user }) => {
     }));
   };
 
-  const handleInfo = () => {
-    setModalState(prev => ({ 
-      ...prev, 
-      info: { isOpen: true, listing } 
-    }));
-  };
-
   return (
     <div className="max-w-[1400px] bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
       <Link to={`/listings/${listing.id}`} className="block">
@@ -116,12 +109,8 @@ const ListingCard = ({ listing, setModalState, navigate, user }) => {
           <p className="text-sm text-gray-600">
             {listing.bedrooms} beds · {listing.bathrooms} bath · {listing.type}
           </p>
-          <button onClick={() => handleInfo(listing)} className="text-blue-500 hover:text-blue-600">
-            <Info className="h-5 w-5" />
-          </button>
         </div>
         
-        {/* Add features/amenities display */}
         <div className="flex flex-wrap gap-3 mb-3">
           {listing.amenities?.map((amenity, index) => (
             <span key={index} className="flex items-center text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
@@ -130,21 +119,11 @@ const ListingCard = ({ listing, setModalState, navigate, user }) => {
           ))}
         </div>
 
-        {/* Add auction end date display */}
-        {listing.auction_end_date && (
-          <div className="mb-3">
-            <p className="text-sm font-medium text-red-600">
-              Auction ends: {new Date(listing.auction_end_date).toLocaleString()}
-            </p>
-          </div>
-        )}
-        
         <p className="text-gray-600 mb-2">{listing.address}</p>
         <p className="font-semibold text-2xl text-[#6B7FF0] mb-4">
           ${listing.min_price?.toLocaleString()} <span className="font-normal text-gray-600 text-base">/month</span>
         </p>
 
-        {/* Add bidding buttons */}
         <button 
           onClick={() => handleBid(listing)}
           className="w-full bg-[#6B7FF0] text-white py-2 rounded-lg hover:bg-[#5A6FE0] transition-colors mb-4"
@@ -158,7 +137,6 @@ const ListingCard = ({ listing, setModalState, navigate, user }) => {
           {isAuctionOpen ? 'Close Auction' : 'View Auction'}
         </button>
 
-        {/* Show auction table when open */}
         {isAuctionOpen && (
           <div className="mt-4">
             <h4 className="text-lg font-semibold mb-2">Current Auction</h4>
@@ -213,12 +191,11 @@ export default function ImprovedSearchInterface() {
     bathrooms: 0,
     propertyType: '',
     amenities: [],
-    radius: 1, // in miles
-    sortBy: 'relevance' // 'price_asc', 'price_desc', or 'relevance'
+    radius: 1,
+    sortBy: 'relevance'
   });
   const [modalState, setModalState] = useState({
     bid: { isOpen: false, listing: null },
-    info: { isOpen: false, listing: null },
     priceRange: { isOpen: false },
     propertyType: { isOpen: false },
     amenities: { isOpen: false },
@@ -229,13 +206,18 @@ export default function ImprovedSearchInterface() {
 
   const [mapCenter, setMapCenter] = useState(null);
   const mapRef = useRef(null);
-  const [bidAmount, setBidAmount] = useState('');
+  const [bidData, setBidData] = useState({
+    amount: '',
+    startDate: '',
+    endDate: ''
+  });
+  
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  
   const closeModal = (modalName) => {
     setModalState(prev => ({ ...prev, [modalName]: { isOpen: false, listing: null } }));
+    setBidData({ amount: '', startDate: '', endDate: '' });
   };
 
   const submitBid = async () => {
@@ -243,25 +225,36 @@ export default function ImprovedSearchInterface() {
       navigate('/login');
       return;
     }
-
+  
+    if (!bidData.startDate || !bidData.endDate) {
+      alert('Please select both start and end dates');
+      return;
+    }
+  
+    const startDate = new Date(bidData.startDate);
+    const endDate = new Date(bidData.endDate);
+  
+    if (startDate >= endDate) {
+      alert('End date must be after start date');
+      return;
+    }
+  
     try {
       const response = await api.post(`/bids/properties/${modalState.bid.listing.id}/bids`, {
-        amount: parseInt(bidAmount)
+        amount: parseInt(bidData.amount),
+        start_date: bidData.startDate,
+        end_date: bidData.endDate
       });
       
-      // Show success message
       alert('Bid placed successfully!');
-      
       closeModal('bid');
-      setBidAmount('');
-      
-      // Refresh listings to show updated bid information
       fetchListings();
     } catch (error) {
       console.error('Error placing bid:', error);
       alert('Failed to place bid: ' + (error.response?.data?.error || error.message));
     }
   };
+
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const startDateParam = params.get('start_date');
@@ -272,7 +265,6 @@ export default function ImprovedSearchInterface() {
   }, [location.search]);
 
   useEffect(() => {
-    // Get search params from URL
     const params = new URLSearchParams(window.location.search);
     const lat = params.get('lat');
     const lng = params.get('lng');
@@ -284,7 +276,6 @@ export default function ImprovedSearchInterface() {
     }
   }, []);
 
-  // Move fetchListings outside useEffect and make it reusable
   const fetchListings = async () => {
     if (!mapCenter) return;
   
@@ -296,11 +287,9 @@ export default function ImprovedSearchInterface() {
         radius: filters.radius || 10
       });
   
-      // Include date filters if set
       if (startDate) params.append('start_date', startDate);
       if (endDate) params.append('end_date', endDate);
   
-      // Include other filters
       if (filters.priceRange[0] > 0) params.append('min_price', filters.priceRange[0]);
       if (filters.priceRange[1] < 5000) params.append('max_price', filters.priceRange[1]);
       if (filters.bedrooms > 0) params.append('bedrooms', filters.bedrooms);
@@ -317,10 +306,9 @@ export default function ImprovedSearchInterface() {
     }
   };
 
-  // Update the useEffect to use the fetchListings function
   useEffect(() => {
     fetchListings();
-  }, [mapCenter, filters, startDate, endDate]);// eslint-disable-line react-hooks/exhaustive-deps
+  }, [mapCenter, filters, startDate, endDate]);
 
   const handleFilterChange = (filterName, value) => {
     setFilters(prevFilters => ({ ...prevFilters, [filterName]: value }));
@@ -330,7 +318,6 @@ export default function ImprovedSearchInterface() {
     setSearchInput(value);
     setSearchLocation(value);
   };
-  
 
   const handleLocationSelect = (data) => {
     setMapCenter({
@@ -338,7 +325,6 @@ export default function ImprovedSearchInterface() {
       lng: data.longitude
     });
     
-    // Use the viewport bounds from Google Places API for better search results
     if (data.viewport && mapRef.current) {
       const bounds = new window.google.maps.LatLngBounds(
         new window.google.maps.LatLng(data.viewport.south, data.viewport.west),
@@ -351,45 +337,41 @@ export default function ImprovedSearchInterface() {
   return (
     <div className="max-w-[2400px] mx-auto p-6 font-sans bg-[#FFF8F0] min-h-screen">
       <div className="flex items-center space-x-2 mb-8">
-      <div className="flex-grow flex items-center bg-white rounded-full p-2 shadow-md border border-gray-200">
-        {/* Left side: Location Input */}
-        <div className="flex items-center flex-grow space-x-2">
-          <CitySearchAutocomplete
-            onLocationSelect={handleLocationSelect}
-            placeholder="Enter a location..."
-            initialValue={searchLocation}
-          />
-        </div>
-
-        {/* Vertical line separator */}
-        <div className="w-px h-8 bg-gray-200 mx-4"></div>
-
-        {/* Right side: From Date, To Date, and Search Button */}
-        <div className="flex items-center space-x-4 ml-auto">
-          <div className="flex items-center space-x-2">
-            <span className="text-gray-600 text-sm">From:</span>
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="w-40 border-none bg-transparent text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-0 text-lg px-4 py-2"
+        <div className="flex-grow flex items-center bg-white rounded-full p-2 shadow-md border border-gray-200">
+          <div className="flex items-center flex-grow space-x-2">
+            <CitySearchAutocomplete
+              onLocationSelect={handleLocationSelect}
+              placeholder="Enter a location..."
+              initialValue={searchLocation}
             />
           </div>
-          <div className="flex items-center space-x-2">
-            <span className="text-gray-600 text-sm">To:</span>
-            <input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="w-40 border-none bg-transparent text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-0 text-lg px-4 py-2"
-            />
+
+          <div className="w-px h-8 bg-gray-200 mx-4"></div>
+
+          <div className="flex items-center space-x-4 ml-auto">
+            <div className="flex items-center space-x-2">
+              <span className="text-gray-600 text-sm">From:</span>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="w-40 border-none bg-transparent text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-0 text-lg px-4 py-2"
+              />
+            </div>
+            <div className="flex items-center space-x-2">
+              <span className="text-gray-600 text-sm">To:</span><input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="w-40 border-none bg-transparent text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-0 text-lg px-4 py-2"
+              />
+            </div>
+            <button className="bg-[#6B7FF0] text-white p-2 rounded-full hover:bg-[#5A6FE0] transition-colors">
+              <Search className="h-6 w-6" />
+            </button>
           </div>
-          <button className="bg-[#6B7FF0] text-white p-2 rounded-full hover:bg-[#5A6FE0] transition-colors">
-            <Search className="h-6 w-6" />
-          </button>
         </div>
       </div>
-    </div>
       
       <div className="flex space-x-4 mb-8 overflow-x-auto pb-2">
         <FilterButton 
@@ -480,59 +462,58 @@ export default function ImprovedSearchInterface() {
         title="Place a Bid"
       >
         <p className="mb-4">Current price: ${modalState.bid.listing?.min_price}/month</p>
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Your Bid:</label>
-          <input
-            type="number"
-            value={bidAmount}
-            onChange={(e) => setBidAmount(e.target.value)}
-            className="w-full p-2 border rounded"
-          />
-        </div>
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Bid Competitiveness:</label>
-          <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
-            <div 
-              className="bg-blue-600 h-2.5 rounded-full" 
-              style={{
-                width: `${Math.min(100, (parseInt(bidAmount) / modalState.bid.listing?.min_price) * 100)}%`
-              }}
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Your Bid:</label>
+            <input
+              type="number"
+              value={bidData.amount}
+              onChange={(e) => setBidData(prev => ({ ...prev, amount: e.target.value }))}
+              className="w-full p-2 border rounded"
+              placeholder="Enter bid amount"
             />
           </div>
-        </div>
-        <button 
-          onClick={submitBid} 
-          className="w-full px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-        >
-          Submit Bid
-        </button>
-      </Modal>
-
-      <Modal
-        isOpen={modalState.info.isOpen}
-        onClose={() => closeModal('info')}
-        title={modalState.info.listing?.name}
-      >
-        <p className="mb-4">{modalState.info.listing?.description}</p>
-        <div className="mb-4">
-          <h4 className="font-semibold mb-2">Details:</h4>
-          <ul className="list-disc list-inside">
-            <li>{modalState.info.listing?.beds} Bedrooms</li>
-            <li>{modalState.info.listing?.baths} Bathrooms</li>
-            <li>Type: {modalState.info.listing?.type}</li>
-            <li>Floor: {modalState.info.listing?.floor}</li>
-            <li>Price: ${modalState.info.listing?.price}/month</li>
-          </ul>
-        </div>
-        <div>
-          <h4 className="font-semibold mb-2">Features:</h4>
-          <div className="flex flex-wrap gap-2">
-            {modalState.info.listing?.features.map((feature, index) => (
-              <span key={index} className="bg-gray-100 text-gray-800 text-sm font-medium px-2.5 py-0.5 rounded">
-                {feature}
-              </span>
-            ))}
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Start Date:</label>
+            <input
+              type="date"
+              value={bidData.startDate}
+              onChange={(e) => setBidData(prev => ({ ...prev, startDate: e.target.value }))}
+              className="w-full p-2 border rounded"
+              min={new Date().toISOString().split('T')[0]}
+            />
           </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">End Date:</label>
+            <input
+              type="date"
+              value={bidData.endDate}
+              onChange={(e) => setBidData(prev => ({ ...prev, endDate: e.target.value }))}
+              className="w-full p-2 border rounded"
+              min={bidData.startDate || new Date().toISOString().split('T')[0]}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Bid Competitiveness:</label>
+            <div className="w-full bg-gray-200 rounded-full h-2.5">
+              <div 
+                className="bg-blue-600 h-2.5 rounded-full" 
+                style={{
+                  width: `${Math.min(100, (parseInt(bidData.amount) / modalState.bid.listing?.min_price) * 100)}%`
+                }}
+              />
+            </div>
+          </div>
+
+          <button 
+            onClick={submitBid} 
+            className="w-full px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          >
+            Submit Bid
+          </button>
         </div>
       </Modal>
 
