@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
+import { FaBath, FaBed, FaCheckCircle} from 'react-icons/fa'; // Import the icons from react-icons
 import api from '../../utils/api';
 
 export default function SellerListingDetail() {
@@ -157,7 +158,7 @@ export default function SellerListingDetail() {
                 &rsaquo;
               </button>
               <img
-                src={listing.images[currentImageIndex].image_url}
+                src={listing.images?.[currentImageIndex]?.image_url || '/placeholder.jpg'}
                 alt={`Image ${currentImageIndex + 1}`}
                 className="w-full max-h-screen object-contain rounded-lg"
               />
@@ -170,6 +171,32 @@ export default function SellerListingDetail() {
             <section>
               <h2 className="text-xl font-semibold mb-4">About this property</h2>
               <p className="text-gray-600">{listing.description}</p>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-semibold mb-4">Details</h2>
+              <div className="flex items-center space-x-4 text-gray-600">
+                <div className="flex items-center">
+                  <FaBed className="w-5 h-5 mr-2 text-blue-500" />
+                  <span className="text-lg">{listing.bedrooms} bedrooms</span>
+                </div>
+                <div className="flex items-center">
+                  <FaBath className="w-5 h-5 mr-2 text-blue-500" />
+                  <span className="text-lg">{listing.bathrooms} bathrooms</span>
+                </div>
+              </div>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-semibold mb-4">Amenities</h2>
+              <ul className="list-disc list-inside text-gray-600 space-y-2">
+                {listing.amenities.map((amenity, index) => (
+                  <li key={index} className="flex items-center">
+                    <FaCheckCircle className="w-4 h-4 mr-2 text-green-500" />
+                    {amenity}
+                  </li>
+                ))}
+              </ul>
             </section>
 
             <section>

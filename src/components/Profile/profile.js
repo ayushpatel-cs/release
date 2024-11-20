@@ -903,7 +903,10 @@ export default function UserDashboard() {
         throw new Error('Auction end date is required');
       }
       formData.append('auction_end_date', new Date(newListing.auction_end_date).toISOString());
-  
+      formData.append('bedrooms', newListing.bedrooms);
+      formData.append('bathrooms', newListing.bathrooms);
+      formData.append('amenities', JSON.stringify(newListing.amenities));
+
       // Images
       if (newListing.imageFiles && newListing.imageFiles.length > 0) {
         newListing.imageFiles.forEach(file => {
@@ -943,6 +946,8 @@ export default function UserDashboard() {
         start_date: '',
         end_date: '',
         auction_end_date: '',
+        bedrooms: 0,
+        bathrooms: 0,
         images: [],
         imageFiles: [],
         id: null,
