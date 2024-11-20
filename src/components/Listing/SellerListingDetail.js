@@ -81,7 +81,7 @@ export default function SellerListingDetail() {
   const BidHistory = ({ bids }) => (
     <div className="mt-8">
       <h3 className="text-xl font-semibold mb-4">Bid History</h3>
-      <div className="bg-white rounded-lg shadow overflow-hidden">
+      <div className="bg-white rounded-lg shadow overflow-hidden max-w-[100%]">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
@@ -99,6 +99,9 @@ export default function SellerListingDetail() {
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                 End Date
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Bidder Contact
               </th>
             </tr>
           </thead>
@@ -129,6 +132,9 @@ export default function SellerListingDetail() {
                     month: '2-digit',
                     day: '2-digit',
                   })}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {bid.bidder.email}
                 </td>
               </tr>
             ))}
@@ -361,7 +367,7 @@ export default function SellerListingDetail() {
                 <h3 className="text-2xl font-bold">
                   ${listing.min_price.toLocaleString()}
                 </h3>
-                <p className="text-gray-600">Starting price</p>
+                <p className="text-gray-600">Suggested price</p>
               </div>
 
               {/* Auction Timer */}
