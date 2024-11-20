@@ -327,6 +327,7 @@ export default function SellerListingDetail() {
                   src={user?.profile_image_url || '/default-avatar.png'}
                   alt={user?.name || 'Host'}
                   className="w-16 h-16 rounded-full"
+                  onError={(e) => { e.target.src = '/default-avatar.png'; }}
                 />
               </div>
             </section>
