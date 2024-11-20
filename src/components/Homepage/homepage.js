@@ -4,7 +4,6 @@ import './homepage.css';
 import homescreenimage from '../../images/homepage.png';
 import CitySearchAutocomplete from '../Common/CitySearchAutocomplete';
 
-
 function Homepage() {
   const navigate = useNavigate();
   const [locationData, setLocationData] = useState(null);
@@ -16,17 +15,17 @@ function Homepage() {
   };
 
   const handleSearch = () => {
-    if (!locationData) return;
-  
-    const queryParams = new URLSearchParams({
-      lat: locationData.latitude,
-      lng: locationData.longitude,
-      address: locationData.address
-    });
-    
+    const queryParams = new URLSearchParams();
+
+    if (locationData) {
+      queryParams.set('lat', locationData.latitude);
+      queryParams.set('lng', locationData.longitude);
+      queryParams.set('address', locationData.address);
+    }
+
     if (fromDate) queryParams.set('start_date', fromDate);
     if (toDate) queryParams.set('end_date', toDate);
-    
+
     navigate(`/search?${queryParams.toString()}`);
   };
 
@@ -68,7 +67,6 @@ function Homepage() {
           <button 
             className="search-button" 
             onClick={handleSearch}
-            disabled={!locationData}
           >
             <span role="img" aria-label="search icon">🔍</span>
           </button>
