@@ -1,7 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { googleMapsLoader } from '../../utils/googleMaps';
 
-const CitySearchAutocomplete = ({ onLocationSelect, placeholder, initialValue = '' }) => {
+const CitySearchAutocomplete = ({
+  onLocationSelect,
+  placeholder,
+  initialValue = '',
+}) => {
   const inputRef = useRef(null);
   const autocompleteRef = useRef(null);
   const [value, setValue] = useState(initialValue);
@@ -9,30 +13,40 @@ const CitySearchAutocomplete = ({ onLocationSelect, placeholder, initialValue = 
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    googleMapsLoader.load()
+    googleMapsLoader
+      .load()
       .then(() => {
         const google = window.google;
-        autocompleteRef.current = new google.maps.places.Autocomplete(inputRef.current, {
-          types: ['(cities)'],
-          componentRestrictions: { country: 'us' }
-        });
+        autocompleteRef.current = new google.maps.places.Autocomplete(
+          inputRef.current,
+          {
+            types: ['(cities)'],
+            componentRestrictions: { country: 'us' },
+          }
+        );
 
         autocompleteRef.current.addListener('place_changed', () => {
           const place = autocompleteRef.current.getPlace();
-          
-          if (place.geometry) {
+
+          if (place && place.geometry) {
             const locationData = {
               address: place.formatted_address,
               latitude: place.geometry.location.lat(),
               longitude: place.geometry.location.lng(),
               placeId: place.place_id,
-              viewport: place.geometry.viewport
+              viewport: place.geometry.viewport,
             };
-            
+
             setValue(place.formatted_address);
             onLocationSelect(locationData);
+          } else {
+            // Clear the input and notify parent component
+            setValue('');
+            onLocationSelect(null);
+            console.warn('No details available for the selected location.');
           }
         });
+
         setIsLoading(false);
       })
       .catch((error) => {
@@ -43,10 +57,43 @@ const CitySearchAutocomplete = ({ onLocationSelect, placeholder, initialValue = 
 
     return () => {
       if (autocompleteRef.current && window.google) {
-        window.google.maps.event.clearInstanceListeners(autocompleteRef.current);
+        window.google.maps.event.clearInstanceListeners(
+          autocompleteRef.current
+        );
       }
     };
   }, [onLocationSelect]);
+
+  // Handle form submission to prevent errors when pressing Enter
+  const handleKeyDown = (event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault(); // Prevent form submission
+
+      const google = window.google;
+      if (autocompleteRef.current && google) {
+        const place = autocompleteRef.current.getPlace();
+
+        if (place && place.geometry) {
+          // Valid place selected
+          const locationData = {
+            address: place.formatted_address,
+            latitude: place.geometry.location.lat(),
+            longitude: place.geometry.location.lng(),
+            placeId: place.place_id,
+            viewport: place.geometry.viewport,
+          };
+
+          setValue(place.formatted_address);
+          onLocationSelect(locationData);
+        } else {
+          // Invalid input
+          setValue('');
+          onLocationSelect(null);
+          console.warn('Please select a valid city from the suggestions.');
+        }
+      }
+    }
+  };
 
   if (error) {
     return <div className="text-red-500">{error}</div>;
@@ -55,14 +102,15 @@ const CitySearchAutocomplete = ({ onLocationSelect, placeholder, initialValue = 
   return (
     <div className="relative">
       <input
-  ref={inputRef}
-  type="text"
-  value={value}
-  onChange={(e) => setValue(e.target.value)}
-  placeholder={placeholder}
-  className="w-full border-none bg-transparent text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-0 text-sm text-center" // Smaller font and centered text
-  disabled={isLoading}
-/>
+        ref={inputRef}
+        type="text"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onKeyDown={handleKeyDown}
+        placeholder={placeholder}
+        className="w-full border-none bg-transparent text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-0 text-sm text-center"
+        disabled={isLoading}
+      />
       {isLoading && (
         <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
           <div className="animate-spin h-5 w-5 border-2 border-gray-500 rounded-full border-t-transparent"></div>
