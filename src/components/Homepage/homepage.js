@@ -17,15 +17,15 @@ function Homepage() {
 
   const handleSearch = () => {
     if (!locationData) return;
-
+  
     const queryParams = new URLSearchParams({
       lat: locationData.latitude,
       lng: locationData.longitude,
       address: locationData.address
     });
     
-    if (fromDate) queryParams.set('from', fromDate);
-    if (toDate) queryParams.set('to', toDate);
+    if (fromDate) queryParams.set('start_date', fromDate);
+    if (toDate) queryParams.set('end_date', toDate);
     
     navigate(`/search?${queryParams.toString()}`);
   };

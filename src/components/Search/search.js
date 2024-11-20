@@ -9,7 +9,7 @@ import { Link } from 'react-router-dom';
 import GoogleMapComponent from './GoogleMap';
 import CitySearchAutocomplete from '../Common/CitySearchAutocomplete';
 import { useAuth } from '../../contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 const images = [homepageImage, apartment2Image, apartment3Image, condo1Image];
 
@@ -194,6 +194,10 @@ export default function ImprovedSearchInterface() {
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const location = useLocation();
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+
   const [filters, setFilters] = useState({
     priceRange: [0, 5000],
     bedrooms: 0,
@@ -213,8 +217,6 @@ export default function ImprovedSearchInterface() {
   });
   const [searchInput, setSearchInput] = useState('');
   const [searchLocation, setSearchLocation] = useState('');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
 
   const [mapCenter, setMapCenter] = useState(null);
   const mapRef = useRef(null);
@@ -251,6 +253,14 @@ export default function ImprovedSearchInterface() {
       alert('Failed to place bid: ' + (error.response?.data?.error || error.message));
     }
   };
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const startDateParam = params.get('start_date');
+    const endDateParam = params.get('end_date');
+  
+    if (startDateParam) setStartDate(startDateParam);
+    if (endDateParam) setEndDate(endDateParam);
+  }, [location.search]);
 
   useEffect(() => {
     // Get search params from URL
@@ -268,7 +278,7 @@ export default function ImprovedSearchInterface() {
   // Move fetchListings outside useEffect and make it reusable
   const fetchListings = async () => {
     if (!mapCenter) return;
-
+  
     setLoading(true);
     try {
       const params = new URLSearchParams({
@@ -276,20 +286,23 @@ export default function ImprovedSearchInterface() {
         longitude: mapCenter.lng,
         radius: filters.radius || 10
       });
-
+  
+      // Include date filters if set
+      if (startDate) params.append('start_date', startDate);
+      if (endDate) params.append('end_date', endDate);
+  
+      // Include other filters
       if (filters.priceRange[0] > 0) params.append('min_price', filters.priceRange[0]);
       if (filters.priceRange[1] < 5000) params.append('max_price', filters.priceRange[1]);
       if (filters.bedrooms > 0) params.append('bedrooms', filters.bedrooms);
       if (filters.bathrooms > 0) params.append('bathrooms', filters.bathrooms);
       if (filters.propertyType) params.append('type', filters.propertyType);
-
+  
       const response = await api.get(`/search?${params.toString()}`);
       setListings(response.data.properties);
-      return response.data.properties; // Return the listings for reuse
     } catch (error) {
       console.error('Error fetching listings:', error);
       setError('Failed to fetch listings');
-      return [];
     } finally {
       setLoading(false);
     }
@@ -298,7 +311,7 @@ export default function ImprovedSearchInterface() {
   // Update the useEffect to use the fetchListings function
   useEffect(() => {
     fetchListings();
-  }, [mapCenter, filters]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [mapCenter, filters, startDate, endDate]);// eslint-disable-line react-hooks/exhaustive-deps
 
   const handleFilterChange = (filterName, value) => {
     setFilters(prevFilters => ({ ...prevFilters, [filterName]: value }));
