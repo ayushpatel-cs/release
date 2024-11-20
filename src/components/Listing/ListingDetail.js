@@ -23,7 +23,6 @@ export default function ListingDetail() {
   const [timeLeft, setTimeLeft] = useState('');
   const { id } = useParams();
   const navigate = useNavigate();
-
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
