@@ -164,7 +164,12 @@ export default function ListingDetail() {
                   ${bid.amount.toLocaleString()}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {new Date(bid.created_at).toLocaleString()}
+                  {new Date(bid.created_at).toLocaleDateString('en-US', {
+                      timeZone: 'UTC',
+                      year: 'numeric',
+                      month: '2-digit',
+                      day: '2-digit',
+                    })}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {new Date(bid.start_date).toLocaleDateString('en-US', {
