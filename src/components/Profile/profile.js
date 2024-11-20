@@ -4,6 +4,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useUserData } from '../../hooks/useUserData';
 import api from '../../utils/api';
 import PropertyAddressAutocomplete from '../Common/PropertyAddressAutocomplete';
+import { useNavigate } from 'react-router-dom';
+import { FaTrash, FaEdit } from 'react-icons/fa'; // Import icons
 
 // Move ProfileTab outside of UserDashboard
 const ProfileTab = ({ userData, onUpdateProfile, refreshData }) => {
@@ -310,25 +312,27 @@ const ProfileTab = ({ userData, onUpdateProfile, refreshData }) => {
 };
 
 // Move ListingsTab outside UserDashboard
-const ListingsTab = ({ 
-  listings, 
-  showAddListingForm, 
-  setShowAddListingForm, 
-  newListing, 
+const ListingsTab = ({
+  listings,
+  showAddListingForm,
+  setShowAddListingForm,
+  newListing,
   setNewListing,
-  handleInputChange, 
-  handleImageUpload, 
+  handleInputChange,
+  handleImageUpload,
   handleAddListing,
   handleEditListing,
-  handleDeleteListing 
+  handleDeleteListing,
 }) => {
   const { active_listings = [], past_listings = [] } = listings || {};
+  const navigate = useNavigate();
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Your Listings</h2>
         <button
+          type="button"
           onClick={() => {
             setNewListing({
               title: '',
@@ -374,7 +378,7 @@ const ListingsTab = ({
                   required
                 />
               </div>
-              
+
               <div>
                 <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
                   Description
@@ -396,16 +400,7 @@ const ListingsTab = ({
                 <PropertyAddressAutocomplete
                   onLocationSelect={(locationData) => {
                     console.log('Raw location data:', locationData); // Debug log
-                    
-                    // Parse address components
-                    const getAddressComponent = (type) => {
-                      const component = locationData.address_components.find(
-                        comp => comp.types.includes(type)
-                      );
-                      return component ? component.long_name : '';
-                    };
-
-                    setNewListing(prev => ({
+                    setNewListing((prev) => ({
                       ...prev,
                       address_line1: locationData.address_line1,
                       city: locationData.city,
@@ -414,7 +409,7 @@ const ListingsTab = ({
                       formatted_address: locationData.formatted_address,
                       latitude: locationData.latitude,
                       longitude: locationData.longitude,
-                      place_id: locationData.place_id
+                      place_id: locationData.place_id,
                     }));
                   }}
                   placeholder="Enter property address"
@@ -440,7 +435,6 @@ const ListingsTab = ({
                   />
                 </div>
               </div>
-              
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -485,47 +479,62 @@ const ListingsTab = ({
       {/* Active Listings */}
       {active_listings.length > 0 && (
         <div>
-        <h3 className="text-xl font-bold mb-4">Active Listings</h3>
-        <div className="space-y-4">
-          {active_listings.map(listing => (
-            <div key={listing.id} className="bg-white p-4 rounded-lg shadow flex">
-              <img 
-                src={listing.images?.[0]?.image_url || '/placeholder.jpg'} 
-                alt={listing.title} 
-                className="w-32 h-32 object-cover rounded-lg mr-4"
-                onError={(e) => {
-                  console.error('Listing image failed to load:', e.target.src);
-                  e.target.src = '/placeholder.jpg';
-                }}
-              />
-              <div className="flex-1">
-                <h3 className="font-semibold text-lg mb-1">{listing.title}</h3>
-                <p className="text-gray-600 mb-1">{listing.address}</p>
-                <p className="font-bold mb-1">${listing.min_price?.toLocaleString()}</p>
-                <div className="flex items-center">
-                  <Star className="text-yellow-400 mr-1" size={16} />
-                  <span>{listing.rating || 'No ratings'} ({listing.reviews?.length || 0} reviews)</span>
+          <h3 className="text-xl font-bold mb-4">Active Listings</h3>
+          <div className="space-y-4">
+            {active_listings.map((listing) => (
+              <div
+                key={listing.id}
+                className="bg-white p-4 rounded-lg shadow flex items-center space-x-4 cursor-pointer hover:shadow-lg transition-shadow duration-300"
+                onClick={() => navigate(`/listings/${listing.id}`)} // Navigate to details page
+              >
+                <img
+                  src={listing.images?.[0]?.image_url || '/placeholder.jpg'}
+                  alt={listing.title}
+                  className="w-32 h-32 object-cover rounded-lg"
+                  onError={(e) => {
+                    console.error('Listing image failed to load:', e.target.src);
+                    e.target.src = '/placeholder.jpg';
+                  }}
+                />
+                <div className="flex-1">
+                  <h3 className="font-semibold text-lg mb-1">{listing.title}</h3>
+                  <p className="font-bold text-gray-700">${listing.min_price?.toLocaleString()}</p>
+                </div>
+                <div className="flex space-x-3">
+                  {/* Edit Button */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation(); // Prevent navigation
+                      handleEditListing(listing);
+                    }}
+                    className="flex items-center px-3 py-2 bg-green-100 text-green-600 rounded-md border border-green-600 hover:bg-green-600 hover:text-white transition duration-300"
+                    title="Edit Listing"
+                  >
+                    <FaEdit size={14} className="mr-1" />
+                    Edit
+                  </button>
+                  {/* Delete Button */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation(); // Prevent navigation
+                      handleDeleteListing(listing.id);
+                    }}
+                    className="flex items-center px-3 py-2 bg-red-100 text-red-600 rounded-md border border-red-600 hover:bg-red-600 hover:text-white transition duration-300"
+                    title="Delete Listing"
+                  >
+                    <FaTrash size={14} className="mr-1" />
+                    Delete
+                  </button>
                 </div>
               </div>
-              <div className="flex flex-col justify-between ml-4">
-                <button
-                  onClick={() => handleEditListing(listing)}
-                  className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-green-600 mb-2"
-                >
-                  Edit
-                </button>
-                <button
-                  onClick={() => handleDeleteListing(listing.id)}
-                  className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-red-600"
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>      
       )}
+
+
 
       {/* Past Listings */}
       {past_listings.length > 0 && (
@@ -727,12 +736,15 @@ export default function UserDashboard() {
   };
 
   const BidsTab = () => {
+    const navigate = useNavigate();
+
     if (!bids) return <div>Loading bids...</div>;
 
     const { active_bids, won_bids, lost_bids } = bids;
 
     const BidCard = ({ bid }) => (
-      <div className="bg-white p-4 rounded-lg shadow flex">
+      
+  <div className="bg-white p-4 rounded-lg shadow flex" onClick={() => navigate(`/listings/${bid.Property.id}`)}>
         <img 
           src={bid.Property?.images?.[0]?.image_url || '/placeholder.jpg'} 
           alt={bid.Property?.title} 
