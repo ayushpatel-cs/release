@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { GoogleMap, useJsApiLoader, Marker, Circle } from '@react-google-maps/api';
-import { InfoBox } from "@react-google-maps/api"; // Import InfoBox
+import { GoogleMap, useJsApiLoader, Marker, Circle, InfoBox } from '@react-google-maps/api';
+import { useNavigate } from 'react-router-dom'; // Import useNavigate
 
 const GoogleMapComponent = ({ listings, center, zoom = 13, radius = 10 }) => {
   const { isLoaded, loadError } = useJsApiLoader({
@@ -8,6 +8,7 @@ const GoogleMapComponent = ({ listings, center, zoom = 13, radius = 10 }) => {
   });
 
   const [selectedListing, setSelectedListing] = useState(null);
+  const navigate = useNavigate(); // Initialize useNavigate
 
   const createCustomMarkerIcon = (price) => {
     const svg = `
@@ -126,12 +127,16 @@ const GoogleMapComponent = ({ listings, center, zoom = 13, radius = 10 }) => {
             enableEventPropagation: true,
           }}
         >
-          <div className="relative bg-white rounded-lg shadow-lg border border-gray-200 w-60">
+          <div className="relative bg-white rounded-lg shadow-lg border border-gray-200 w-60 cursor-pointer">
             {/* Custom Close Button */}
             <button
-              onClick={() => setSelectedListing(null)}
+              onClick={(e) => {
+                e.stopPropagation(); // Prevent the click from propagating to the InfoBox
+                setSelectedListing(null);
+              }}
               className="absolute top-1 right-1 text-gray-500 hover:text-gray-700"
               style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '16px' }}
+              aria-label="Close InfoWindow"
             >
               &#10005; {/* Unicode for 'x' */}
             </button>
@@ -141,9 +146,13 @@ const GoogleMapComponent = ({ listings, center, zoom = 13, radius = 10 }) => {
               alt={selectedListing.title}
               className="w-full h-32 object-cover rounded-t-lg"
               style={{ width: '240px', height: '160px' }} // Fixed size
+              onError={(e) => { e.target.onerror = null; e.target.src = '/placeholder.jpg'; }} // Fallback on error
             />
             {/* Listing Details */}
-            <div className="p-2">
+            <div
+              className="p-2"
+              onClick={() => navigate(`/listings/${selectedListing.id}`)} // Navigate on InfoBox content click
+            >
               <h2 className="text-[#6B7FF0] font-semibold text-sm">${selectedListing.min_price.toLocaleString()}</h2>
               <p className="text-gray-700 text-xs font-medium truncate">{selectedListing.title}</p>
               {selectedListing.rating && (
@@ -152,6 +161,16 @@ const GoogleMapComponent = ({ listings, center, zoom = 13, radius = 10 }) => {
                   <span className="text-gray-500 text-xs">{selectedListing.rating}</span>
                 </div>
               )}
+              {/* Optional: Add a "View Listing" Button */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation(); // Prevent the click from propagating to the parent div
+                  navigate(`/listings/${selectedListing.id}`);
+                }}
+                className="mt-2 px-2 py-1 bg-[#6B7FF0] text-white text-xs rounded hover:bg-[#5A6FE0] transition-colors"
+              >
+                View Listing
+              </button>
             </div>
           </div>
         </InfoBox>
