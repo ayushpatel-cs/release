@@ -22,7 +22,7 @@ console.log('Final baseURL:', baseURL);
 const api = axios.create({
   baseURL,
   headers: {
-    'Content-Type': 'application/json'
+    'Accept': 'application/json'
   }
 });
 
@@ -33,13 +33,39 @@ api.interceptors.request.use(config => {
     config.headers.Authorization = `Bearer ${token}`;
   }
   
-  // If the request contains FormData, remove the Content-Type header
-  // to let the browser set it automatically with the boundary
+  // Handle FormData specifically
   if (config.data instanceof FormData) {
+    // Disable transformRequest for FormData
+    config.transformRequest = [(data) => data];
+    // Remove any content-type header to let the browser set it
     delete config.headers['Content-Type'];
+  } else if (typeof config.data === 'object') {
+    // For JSON data
+    config.headers['Content-Type'] = 'application/json';
   }
   
   return config;
+}, error => {
+  return Promise.reject(error);
 });
+
+// Add response interceptor for better error handling
+api.interceptors.response.use(
+  response => response,
+  error => {
+    // Log the full error details
+    console.error('API Error:', {
+      message: error.message,
+      response: error.response?.data,
+      config: {
+        url: error.config?.url,
+        method: error.config?.method,
+        headers: error.config?.headers,
+        data: error.config?.data
+      }
+    });
+    return Promise.reject(error);
+  }
+);
 
 export default api;
