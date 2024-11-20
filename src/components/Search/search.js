@@ -241,46 +241,55 @@ export default function ImprovedSearchInterface() {
       return;
     }
   
-    if (!bidData.amount || !bidData.startDate || !bidData.endDate) {
-      alert('Please fill in all bid details');
+    if (!bidData.startDate || !bidData.endDate) {
+      alert('Please select both start and end dates');
       return;
     }
   
     const startDate = new Date(bidData.startDate);
     const endDate = new Date(bidData.endDate);
-    const now = new Date();
   
-    // Validate dates
-    if (startDate < now) {
-      alert('Start date must be in the future');
-      return;
-    }
-  
-    if (endDate <= startDate) {
+    if (startDate >= endDate) {
       alert('End date must be after start date');
       return;
     }
   
     try {
-      const response = await api.post(`/properties/${modalState.bid.listing.id}/bids`, {
-        amount: parseFloat(bidData.amount),
+      const response = await api.post(`/bids/properties/${modalState.bid.listing.id}/bids`, {
+        amount: parseInt(bidData.amount),
         start_date: bidData.startDate,
         end_date: bidData.endDate
       });
       
-      if (response.data) {
-        alert('Bid placed successfully!');
-        closeModal('bid');
-        // Refresh the listings to show the new bid
-        fetchListings();
-      }
+      alert('Bid placed successfully!');
+      closeModal('bid');
+      fetchListings();
     } catch (error) {
       console.error('Error placing bid:', error);
-      const errorMessage = error.response?.data?.error || 'Failed to place bid';
-      alert(`Error: ${errorMessage}`);
+      alert('Failed to place bid: ' + (error.response?.data?.error || error.message));
     }
   };
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const startDateParam = params.get('start_date');
+    const endDateParam = params.get('end_date');
   
+    if (startDateParam) setStartDate(startDateParam);
+    if (endDateParam) setEndDate(endDateParam);
+  }, [location.search]);
+
+  useEffect(() => {
+    // Get search params from URL
+    const params = new URLSearchParams(window.location.search);
+    const lat = params.get('lat');
+    const lng = params.get('lng');
+    const address = params.get('address');
+    
+    if (lat && lng) {
+      setMapCenter({ lat: parseFloat(lat), lng: parseFloat(lng) });
+      setSearchLocation(address || '');
+    }
+  }, []);
 
   // Move fetchListings outside useEffect and make it reusable
   const fetchListings = async () => {
