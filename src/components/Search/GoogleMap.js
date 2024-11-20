@@ -1,7 +1,38 @@
-import React, { useState } from 'react';
 import { GoogleMap, useJsApiLoader, Marker, Circle, InfoBox } from '@react-google-maps/api';
-import { useNavigate } from 'react-router-dom'; // Import useNavigate
+import { useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
 
+// Add these 3 functions here:
+const addJitter = (coord, factor = 0.0002) => {
+  return coord + (Math.random() - 0.5) * factor;
+};
+
+const areCoordsClose = (coord1, coord2, threshold = 0.0001) => {
+  return Math.abs(coord1.lat - coord2.lat) < threshold && 
+         Math.abs(coord1.lng - coord2.lng) < threshold;
+};
+
+const adjustCoordinates = (listings) => {
+  const adjustedListings = listings.map(listing => ({
+    ...listing,
+    adjustedLat: parseFloat(listing.latitude),
+    adjustedLng: parseFloat(listing.longitude)
+  }));
+
+  for (let i = 0; i < adjustedListings.length; i++) {
+    for (let j = i + 1; j < adjustedListings.length; j++) {
+      if (areCoordsClose(
+        { lat: adjustedListings[i].adjustedLat, lng: adjustedListings[i].adjustedLng },
+        { lat: adjustedListings[j].adjustedLat, lng: adjustedListings[j].adjustedLng }
+      )) {
+        adjustedListings[j].adjustedLat = addJitter(adjustedListings[j].adjustedLat);
+        adjustedListings[j].adjustedLng = addJitter(adjustedListings[j].adjustedLng);
+      }
+    }
+  }
+
+  return adjustedListings;
+};
 const GoogleMapComponent = ({ listings, center, zoom = 13, radius = 10 }) => {
   const { isLoaded, loadError } = useJsApiLoader({
     googleMapsApiKey: process.env.REACT_APP_GOOGLE_MAPS_API_KEY,
@@ -100,14 +131,14 @@ const GoogleMapComponent = ({ listings, center, zoom = 13, radius = 10 }) => {
         }}
       />
 
-      {listings.map((listing) => {
-        if (!listing.latitude || !listing.longitude) return null;
+{adjustCoordinates(listings).map((listing) => {
+        if (!listing.adjustedLat || !listing.adjustedLng) return null;
         return (
           <Marker
             key={listing.id}
             position={{
-              lat: parseFloat(listing.latitude),
-              lng: parseFloat(listing.longitude),
+              lat: listing.adjustedLat,
+              lng: listing.adjustedLng,
             }}
             icon={createCustomMarkerIcon(listing.min_price)}
             onClick={() => setSelectedListing(listing)}
