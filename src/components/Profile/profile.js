@@ -793,7 +793,7 @@ export default function UserDashboard() {
         end_date: null,
         auction_end_date: null,
         images: [],       // Reset images array
-        imageFiles: []    // Reset imageFiles array
+        imageFiles: [],    // Reset imageFiles array
         id: null, // Reset ID after editing
       });
   
