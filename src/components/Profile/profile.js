@@ -416,6 +416,52 @@ const ListingsTab = ({
               </div>
 
               <div>
+                <label htmlFor="start_date" className="block text-sm font-medium text-gray-700 mb-1">
+                  Start Date
+                </label>
+                <input
+                  type="date"
+                  id="start_date"
+                  name="start_date"
+                  value={newListing.start_date}
+                  onChange={handleInputChange}
+                  className="w-full p-2 border border-gray-300 rounded-md"
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="end_date" className="block text-sm font-medium text-gray-700 mb-1">
+                  End Date
+                </label>
+                <input
+                  type="date"
+                  id="end_date"
+                  name="end_date"
+                  value={newListing.end_date}
+                  onChange={handleInputChange}
+                  className="w-full p-2 border border-gray-300 rounded-md"
+                  required
+                />
+              </div>
+
+              <div>
+                <label htmlFor="auction_end_date" className="block text-sm font-medium text-gray-700 mb-1">
+                  Auction End Date
+                </label>
+                <input
+                  type="date"
+                  id="auction_end_date"
+                  name="auction_end_date"
+                  value={newListing.auction_end_date}
+                  onChange={handleInputChange}
+                  className="w-full p-2 border border-gray-300 rounded-md"
+                  required
+                />
+              </div>
+
+
+
+              <div>
                 <label htmlFor="price" className="block text-sm font-medium text-gray-700 mb-1">
                   Minimum Price
                 </label>
@@ -446,14 +492,20 @@ const ListingsTab = ({
                   accept="image/*"
                   multiple={!newListing.id} // Allow multiple uploads only for new listings
                 />
-                {newListing.image && (
-                  <img
-                    src={newListing.image}
-                    alt="Preview"
-                    className="mt-2 h-32 w-32 object-cover rounded-md"
-                  />
-                )}
+                {newListing.images && newListing.images.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {newListing.images.map((image, index) => (
+                      <img 
+                        key={index}
+                        src={image}
+                        alt={`Preview ${index + 1}`}
+                        className="h-32 w-32 object-cover rounded-md"
+                      />
+                    ))}
+                  </div>
+                   )}
               </div>
+    
 
               <div className="flex justify-end space-x-2">
                 <button
@@ -590,8 +642,11 @@ export default function UserDashboard() {
     latitude: null,
     longitude: null,
     place_id: '',
-    image: null,
-    imageFile: null
+    images: [],
+    imageFiles: [],
+    start_date: '', // Add this line
+    end_date: '',    // Add this line
+    auction_end_date: ''
   });
 
   if (loading) {
@@ -607,15 +662,22 @@ export default function UserDashboard() {
   }
 
   const handleImageUpload = (event) => {
-    const file = event.target.files[0];
-    if (file) {
+    const files = Array.from(event.target.files);
+    if (files.length < 5) {
+      alert('Please upload at least 5 images.');
+      event.target.value = ''; // Reset the input
+      return;
+    }
+    if (files.length >= 5) {
+      const imagePreviews = files.map(file => URL.createObjectURL(file));
       setNewListing(prev => ({ 
         ...prev, 
-        image: URL.createObjectURL(file),
-        imageFile: file  // Store the actual file
+        images: imagePreviews,
+        imageFiles: files
       }));
     }
   };
+  
 
   const handleInputChange = (event) => {
     const { name, value } = event.target
@@ -674,8 +736,46 @@ export default function UserDashboard() {
         });
         console.log('Property created:', response.data);
       }
-  
-      // Close the form and reset the state
+      // Add each address field individually
+      formData.append('address_line1', newListing.address_line1);
+      formData.append('city', newListing.city);
+      formData.append('state', newListing.state);
+      formData.append('zip_code', newListing.zip_code);
+      formData.append('formatted_address', newListing.formatted_address);
+      formData.append('latitude', newListing.latitude);
+      formData.append('longitude', newListing.longitude);
+      formData.append('place_id', newListing.place_id);
+      
+      // Dates
+      if (!newListing.start_date || !newListing.end_date) {
+        throw new Error('Start date and end date are required');
+      }
+      formData.append('start_date', new Date(newListing.start_date).toISOString());
+      formData.append('end_date', new Date(newListing.end_date).toISOString());
+      formData.append('auction_end_date', new Date(newListing.auction_end_date).toISOString());
+
+      // Image
+      if (newListing.imageFiles && newListing.imageFiles.length > 0) {
+        newListing.imageFiles.forEach(file => {
+          formData.append('images', file);
+        });
+      }
+      // Image
+      if (newListing.imageFile) {
+        formData.append('images', newListing.imageFile);
+      }
+      
+      // Debug log
+      for (let pair of formData.entries()) {
+        console.log('FormData entry:', pair[0], pair[1]);
+      }
+
+      const response = await api.post('/properties', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      console.log('Property created:', response.data);
+
       setShowAddListingForm(false);
       setNewListing({
         title: '',
@@ -689,8 +789,11 @@ export default function UserDashboard() {
         latitude: null,
         longitude: null,
         place_id: '',
-        image: null,
-        imageFile: null,
+        start_date: null,
+        end_date: null,
+        auction_end_date: null,
+        images: [],       // Reset images array
+        imageFiles: []    // Reset imageFiles array
         id: null, // Reset ID after editing
       });
   
