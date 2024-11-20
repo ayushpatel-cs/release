@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useUserData } from '../../hooks/useUserData';
 import api from '../../utils/api';
 import PropertyAddressAutocomplete from '../Common/PropertyAddressAutocomplete';
+import { useNavigate } from 'react-router-dom';
 
 // Move ProfileTab outside of UserDashboard
 const ProfileTab = ({ userData, onUpdateProfile, refreshData }) => {
@@ -321,6 +322,7 @@ const ListingsTab = ({
   handleAddListing 
 }) => {
   const { active_listings = [], past_listings = [] } = listings || {};
+  const navigate = useNavigate();
 
   return (
     <div className="space-y-6">
@@ -419,7 +421,7 @@ const ListingsTab = ({
                     required
                   />
                 </div>
-              </div>
+              </div> 
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -467,25 +469,21 @@ const ListingsTab = ({
         <div>
           <h3 className="text-xl font-bold mb-4">Active Listings</h3>
           <div className="space-y-4">
-            {active_listings.map(listing => (
-              <div key={listing.id} className="bg-white p-4 rounded-lg shadow flex">
-                <img 
-                  src={listing.images?.[0]?.image_url || '/placeholder.jpg'} 
-                  alt={listing.title} 
+            {active_listings.map((listing) => (
+              <div
+                key={listing.id}
+                className="bg-white p-4 rounded-lg shadow flex cursor-pointer"
+                onClick={() => navigate(`/listings/${listing.id}`)}  // Navigate to details page
+              >
+                <img
+                  src={listing.images?.[0]?.image_url || '/placeholder.jpg'}
+                  alt={listing.title}
                   className="w-32 h-32 object-cover rounded-lg mr-4"
-                  onError={(e) => {
-                    console.error('Listing image failed to load:', e.target.src);
-                    e.target.src = '/placeholder.jpg';
-                  }}
                 />
                 <div>
                   <h3 className="font-semibold text-lg mb-1">{listing.title}</h3>
                   <p className="text-gray-600 mb-1">{listing.address}</p>
                   <p className="font-bold mb-1">${listing.min_price?.toLocaleString()}</p>
-                  <div className="flex items-center">
-                    <Star className="text-yellow-400 mr-1" size={16} />
-                    <span>{listing.rating || 'No ratings'} ({listing.reviews?.length || 0} reviews)</span>
-                  </div>
                 </div>
               </div>
             ))}
@@ -653,12 +651,15 @@ export default function UserDashboard() {
   };
 
   const BidsTab = () => {
+    const navigate = useNavigate();
+
     if (!bids) return <div>Loading bids...</div>;
 
     const { active_bids, won_bids, lost_bids } = bids;
 
     const BidCard = ({ bid }) => (
-      <div className="bg-white p-4 rounded-lg shadow flex">
+      
+  <div className="bg-white p-4 rounded-lg shadow flex" onClick={() => navigate(`/listings/${bid.Property.id}`)}>
         <img 
           src={bid.Property?.images?.[0]?.image_url || '/placeholder.jpg'} 
           alt={bid.Property?.title} 

@@ -6,31 +6,34 @@ import { MapPin, Info, Ban, Calendar } from 'lucide-react';
 import api from '../../utils/api';
 
 export default function ListingDetail() {
-    const [listing, setListing] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const [bidAmount, setBidAmount] = useState('');
-    const [timeLeft, setTimeLeft] = useState('');
-    const { id } = useParams();
-    const navigate = useNavigate();
+  const [listing, setListing] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [bidAmount, setBidAmount] = useState('');
+  const [timeLeft, setTimeLeft] = useState('');
+  const { id } = useParams();
+  const navigate = useNavigate();
 
-    useEffect(() => {
-        const fetchListing = async () => {
-          setLoading(true);
-          try {
-            const response = await api.get(`/properties/${id}`);
-            setListing(response.data);
-            setBidAmount(response.data.min_price?.toString() || '');
-          } catch (error) {
-            console.error('Error fetching listing:', error);
-            setError('Failed to fetch listing details');
-          } finally {
-            setLoading(false);
-          }
-        };
-    
-        fetchListing();
-      }, [id]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  useEffect(() => {
+    const fetchListing = async () => {
+      setLoading(true);
+      try {
+        const response = await api.get(`/properties/${id}`);
+        setListing(response.data);
+        setBidAmount(response.data.min_price?.toString() || '');
+      } catch (error) {
+        console.error('Error fetching listing:', error);
+        setError('Failed to fetch listing details');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchListing();
+  }, [id]);
 
     // Update countdown timer
     useEffect(() => {
@@ -141,36 +144,103 @@ export default function ListingDetail() {
         <h1 className="text-2xl font-semibold mb-6">{listing.title}</h1>
 
         {/* Image Gallery */}
-        <div className="relative rounded-3xl overflow-hidden mb-12">
-          <div className="grid grid-cols-4 gap-2">
-            <div className="col-span-2">
+        <div className="relative rounded-3xl overflow-hidden mb-6">
+          <div className="grid grid-cols-4 grid-rows-2 gap-2">
+            {/* Main Image */}
+            <div className="col-span-2 row-span-2">
               <img
                 src={listing.images?.[0]?.image_url || '/placeholder.jpg'}
                 alt={listing.title}
-                className="w-full h-[400px] object-cover"
+                className="w-full h-full object-cover cursor-pointer rounded-lg"
+                onClick={() => {
+                  setCurrentImageIndex(0);
+                  setIsModalOpen(true);
+                }}
               />
             </div>
-            <div className="col-span-2 grid grid-cols-2 gap-2">
-              {listing.images?.slice(1, 5).map((image, index) => (
-                <div key={image.id} className={`relative ${index === 3 ? 'relative' : ''}`}>
-                  <img
-                    src={image.image_url}
-                    alt={`View ${index + 2}`}
-                    className="w-full h-[200px] object-cover"
-                  />
-                  {index === 3 && listing.images.length > 5 && (
-                    <button className="absolute bottom-2 right-2 bg-white px-4 py-2 rounded-md text-sm">
-                      +{listing.images.length - 5} more
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
+            {/* Thumbnails */}
+            {listing.images?.slice(1, 5).map((image, index) => (
+              <div key={image.id} className="relative">
+                <img
+                  src={image.image_url}
+                  alt={`View ${index + 2}`}
+                  className="w-full h-full object-cover cursor-pointer rounded-lg"
+                  onClick={() => {
+                    setCurrentImageIndex(index + 1);
+                    setIsModalOpen(true);
+                  }}
+                />
+                {index === 3 && listing.images.length > 5 && (
+                  <button
+                    onClick={() => {
+                      setCurrentImageIndex(4);
+                      setIsModalOpen(true);
+                    }}
+                    className="absolute inset-0 bg-black bg-opacity-50 text-white flex items-center justify-center text-lg font-semibold rounded-lg"
+                  >
+                    +{listing.images.length - 5} more
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+          {/* View All Photos Button */}
+          <div className="mt-4 text-center">
+            <button
+              onClick={() => {
+                setCurrentImageIndex(0);
+                setIsModalOpen(true);
+              }}
+              className="inline-block bg-gray-800 text-white px-6 py-2 rounded-md hover:bg-gray-900 transition-colors"
+            >
+              View all Photos
+            </button>
           </div>
         </div>
 
+        {/* Modal */}
+        {isModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75">
+            <div className="relative max-w-5xl w-full mx-auto">
+              {/* Close button */}
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="absolute top-4 right-4 text-white text-3xl font-bold"
+              >
+                &times;
+              </button>
+              {/* Previous button */}
+              <button
+                onClick={() =>
+                  setCurrentImageIndex(
+                    (currentImageIndex - 1 + listing.images.length) % listing.images.length
+                  )
+                }
+                className="absolute left-4 top-1/2 transform -translate-y-1/2 text-white text-5xl font-bold"
+              >
+                &lsaquo;
+              </button>
+              {/* Next button */}
+              <button
+                onClick={() =>
+                  setCurrentImageIndex((currentImageIndex + 1) % listing.images.length)
+                }
+                className="absolute right-4 top-1/2 transform -translate-y-1/2 text-white text-5xl font-bold"
+              >
+                &rsaquo;
+              </button>
+              {/* Current image */}
+              <img
+                src={listing.images[currentImageIndex].image_url}
+                alt={`Image ${currentImageIndex + 1}`}
+                className="w-full max-h-screen object-contain rounded-lg"
+              />
+            </div>
+          </div>
+        )}
+
         {/* Main Content Grid */}
-        <div className="grid grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Column - Details */}
           <div className="col-span-2 space-y-8">
             {/* Description */}
