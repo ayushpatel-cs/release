@@ -49,23 +49,4 @@ api.interceptors.request.use(config => {
   return Promise.reject(error);
 });
 
-// Add response interceptor for better error handling
-api.interceptors.response.use(
-  response => response,
-  error => {
-    // Log the full error details
-    console.error('API Error:', {
-      message: error.message,
-      response: error.response?.data,
-      config: {
-        url: error.config?.url,
-        method: error.config?.method,
-        headers: error.config?.headers,
-        data: error.config?.data
-      }
-    });
-    return Promise.reject(error);
-  }
-);
-
 export default api;
