@@ -293,6 +293,18 @@ export default function ImprovedSearchInterface() {
         radius: filters.radius || 10
       });
 
+      if (startDate) params.append('start_date', startDate);
+      if (endDate) params.append('end_date', endDate);
+  
+      if (filters.priceRange[0] > 0) params.append('min_price', filters.priceRange[0]);
+      if (filters.priceRange[1] < 5000) params.append('max_price', filters.priceRange[1]);
+      if (filters.bedrooms > 0) params.append('bedrooms', filters.bedrooms);
+      if (filters.bathrooms > 0) params.append('bathrooms', filters.bathrooms);
+      if (filters.propertyType) params.append('type', filters.propertyType);
+      filters.amenities.forEach((amenity) => {
+        params.append('amenities', amenity);
+      });
+
       const response = await api.get(`/search?${params.toString()}`);
       let fetchedListings = response.data.properties;
 
@@ -677,26 +689,116 @@ export default function ImprovedSearchInterface() {
       </Modal>
 
       <Modal
-        isOpen={modalState.amenities.isOpen}
-        onClose={() => closeModal('amenities')}
-        title="Amenities"
-      >
-        <div className="space-y-2">
-          {['Wifi', 'Kitchen', 'Gym', 'Study Areas', 'Laundry', 'Pool'].map((amenity) => (
-            <button
-              key={amenity}
-              className={`w-full text-left px-4 py-2 rounded ${filters.amenities.includes(amenity) ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-800'}`}
-              onClick={() => handleFilterChange('amenities', 
-                filters.amenities.includes(amenity) 
-                  ? filters.amenities.filter(a => a !== amenity)
-                  : [...filters.amenities, amenity]
-              )}
-            >
-              {amenity}
-            </button>
-          ))}
+      isOpen={modalState.amenities.isOpen}
+      onClose={() => closeModal('amenities')}
+      title="Amenities"
+    >
+      <div className="h-64 overflow-y-auto space-y-6">
+        {/* Main Amenities */}
+        <div>
+          <h3 className="text-lg font-bold mb-2">Main Amenities</h3>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            {[
+              { label: "Wifi" },
+              { label: "TV" },
+              { label: "Kitchen" },
+              { label: "Washer" },
+              { label: "Free parking on premises" },
+              { label: "Paid parking on premises" },
+              { label: "Air conditioning" },
+              { label: "Study spaces" },
+            ].map((amenity) => (
+              <button
+                key={amenity.label}
+                className={`w-full text-center px-4 py-2 rounded ${
+                  filters.amenities.includes(amenity.label)
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-gray-100 text-gray-800'
+                }`}
+                onClick={() =>
+                  handleFilterChange(
+                    'amenities',
+                    filters.amenities.includes(amenity.label)
+                      ? filters.amenities.filter((a) => a !== amenity.label)
+                      : [...filters.amenities, amenity.label]
+                  )
+                }
+              >
+                {amenity.label}
+              </button>
+            ))}
+          </div>
         </div>
-      </Modal>
+
+        {/* Extra Amenities */}
+        <div>
+          <h3 className="text-lg font-bold mb-2">Extra Amenities</h3>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            {[
+              { label: "Pool" },
+              { label: "Hot tub" },
+              { label: "BBQ grill" },
+              { label: "Pool table" },
+              { label: "Piano" },
+              { label: "Exercise equipment/gym" },
+            ].map((amenity) => (
+              <button
+                key={amenity.label}
+                className={`w-full text-center px-4 py-2 rounded ${
+                  filters.amenities.includes(amenity.label)
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-gray-100 text-gray-800'
+                }`}
+                onClick={() =>
+                  handleFilterChange(
+                    'amenities',
+                    filters.amenities.includes(amenity.label)
+                      ? filters.amenities.filter((a) => a !== amenity.label)
+                      : [...filters.amenities, amenity.label]
+                  )
+                }
+              >
+                {amenity.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Safety Items */}
+        <div>
+          <h3 className="text-lg font-bold mb-2">Safety Items</h3>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            {[
+              { label: "Smoke alarm" },
+              { label: "First aid kit" },
+              { label: "Fire extinguisher" },
+              { label: "Carbon monoxide alarm" },
+            ].map((amenity) => (
+              <button
+                key={amenity.label}
+                className={`w-full text-center px-4 py-2 rounded ${
+                  filters.amenities.includes(amenity.label)
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-gray-100 text-gray-800'
+                }`}
+                onClick={() =>
+                  handleFilterChange(
+                    'amenities',
+                    filters.amenities.includes(amenity.label)
+                      ? filters.amenities.filter((a) => a !== amenity.label)
+                      : [...filters.amenities, amenity.label]
+                  )
+                }
+              >
+                {amenity.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </Modal>
+
+
     </div>
   );
 } 
