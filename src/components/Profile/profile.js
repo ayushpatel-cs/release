@@ -6,7 +6,6 @@ import api from '../../utils/api';
 import PropertyAddressAutocomplete from '../Common/PropertyAddressAutocomplete';
 import { useNavigate } from 'react-router-dom';
 import { FaTrash, FaEdit } from 'react-icons/fa'; // Import icons
-
 // Move ProfileTab outside of UserDashboard
 const ProfileTab = ({ userData, onUpdateProfile, refreshData }) => {
   const [isEditing, setIsEditing] = useState(false);
@@ -434,7 +433,7 @@ const ListingsTab = ({
                     required
                   />
                 </div>
-              </div>
+              </div> 
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -490,7 +489,7 @@ const ListingsTab = ({
                 <img
                   src={listing.images?.[0]?.image_url || '/placeholder.jpg'}
                   alt={listing.title}
-                  className="w-32 h-32 object-cover rounded-lg"
+                  className="w-32 h-32 object-cover rounded-lg mr-4"
                   onError={(e) => {
                     console.error('Listing image failed to load:', e.target.src);
                     e.target.src = '/placeholder.jpg';
@@ -498,6 +497,7 @@ const ListingsTab = ({
                 />
                 <div className="flex-1">
                   <h3 className="font-semibold text-lg mb-1">{listing.title}</h3>
+                  <p className="text-gray-600 mb-1">{listing.address}</p>
                   <p className="font-bold text-gray-700">${listing.min_price?.toLocaleString()}</p>
                 </div>
                 <div className="flex space-x-3">

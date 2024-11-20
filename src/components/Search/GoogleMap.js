@@ -3,7 +3,7 @@ import { GoogleMap, useJsApiLoader, Marker, InfoWindow, Circle } from '@react-go
 
 const GoogleMapComponent = ({ listings, center, zoom = 13, radius = 10 }) => {
   const { isLoaded, loadError } = useJsApiLoader({
-    googleMapsApiKey: 'YOUR_GOOGLE_MAPS_API_KEY', // Replace with your actual API key
+    googleMapsApiKey: process.env.REACT_APP_GOOGLE_MAPS_API_KEY,
   });
 
   const [selectedListing, setSelectedListing] = useState(null);
