@@ -362,18 +362,6 @@ export default function SellerListingDetail() {
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold mb-4">Amenities</h2>
-              <ul className="list-disc list-inside text-gray-600 space-y-2">
-                {listing.amenities.map((amenity, index) => (
-                  <li key={index} className="flex items-center">
-                    <FaCheckCircle className="w-4 h-4 mr-2 text-green-500" />
-                    {amenity}
-                  </li>
-                ))}
-              </ul>
-            </section>
-
-            <section>
               <h2 className="text-xl font-semibold mb-4">Location</h2>
               <div className="aspect-[2/1] relative rounded-lg overflow-hidden bg-gray-200">
                 <iframe
