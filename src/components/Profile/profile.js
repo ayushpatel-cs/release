@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useUserData } from '../../hooks/useUserData';
 import api from '../../utils/api';
 import PropertyAddressAutocomplete from '../Common/PropertyAddressAutocomplete';
+import { useNavigate } from 'react-router-dom';
 
 // Move ProfileTab outside of UserDashboard
 const ProfileTab = ({ userData, onUpdateProfile, refreshData }) => {
@@ -321,6 +322,7 @@ const ListingsTab = ({
   handleAddListing 
 }) => {
   const { active_listings = [], past_listings = [] } = listings || {};
+  const navigate = useNavigate();
 
   return (
     <div className="space-y-6">
@@ -402,36 +404,6 @@ const ListingsTab = ({
               </div>
 
               <div>
-                <label htmlFor="start_date" className="block text-sm font-medium text-gray-700 mb-1">
-                  Start Date
-                </label>
-                <input
-                  type="date"
-                  id="start_date"
-                  name="start_date"
-                  value={newListing.start_date}
-                  onChange={handleInputChange}
-                  className="w-full p-2 border border-gray-300 rounded-md"
-                  required
-                />
-              </div>
-
-              <div>
-                <label htmlFor="end_date" className="block text-sm font-medium text-gray-700 mb-1">
-                  End Date
-                </label>
-                <input
-                  type="date"
-                  id="end_date"
-                  name="end_date"
-                  value={newListing.end_date}
-                  onChange={handleInputChange}
-                  className="w-full p-2 border border-gray-300 rounded-md"
-                  required
-                />
-              </div>
-
-              <div>
                 <label htmlFor="price" className="block text-sm font-medium text-gray-700 mb-1">
                   Minimum Price
                 </label>
@@ -449,7 +421,7 @@ const ListingsTab = ({
                     required
                   />
                 </div>
-              </div>
+              </div> 
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -463,17 +435,12 @@ const ListingsTab = ({
                   multiple
                   required
                 />
-                {newListing.images && newListing.images.length > 0 && (
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {newListing.images.map((image, index) => (
-                      <img 
-                        key={index}
-                        src={image}
-                        alt={`Preview ${index + 1}`}
-                        className="h-32 w-32 object-cover rounded-md"
-                      />
-                    ))}
-                  </div>
+                {newListing.image && (
+                  <img 
+                    src={newListing.image} 
+                    alt="Preview" 
+                    className="mt-2 h-32 w-32 object-cover rounded-md"
+                  />
                 )}
               </div>
 
@@ -502,25 +469,21 @@ const ListingsTab = ({
         <div>
           <h3 className="text-xl font-bold mb-4">Active Listings</h3>
           <div className="space-y-4">
-            {active_listings.map(listing => (
-              <div key={listing.id} className="bg-white p-4 rounded-lg shadow flex">
-                <img 
-                  src={listing.images?.[0]?.image_url || '/placeholder.jpg'} 
-                  alt={listing.title} 
+            {active_listings.map((listing) => (
+              <div
+                key={listing.id}
+                className="bg-white p-4 rounded-lg shadow flex cursor-pointer"
+                onClick={() => navigate(`/listings/${listing.id}`)}  // Navigate to details page
+              >
+                <img
+                  src={listing.images?.[0]?.image_url || '/placeholder.jpg'}
+                  alt={listing.title}
                   className="w-32 h-32 object-cover rounded-lg mr-4"
-                  onError={(e) => {
-                    console.error('Listing image failed to load:', e.target.src);
-                    e.target.src = '/placeholder.jpg';
-                  }}
                 />
                 <div>
                   <h3 className="font-semibold text-lg mb-1">{listing.title}</h3>
                   <p className="text-gray-600 mb-1">{listing.address}</p>
                   <p className="font-bold mb-1">${listing.min_price?.toLocaleString()}</p>
-                  <div className="flex items-center">
-                    <Star className="text-yellow-400 mr-1" size={16} />
-                    <span>{listing.rating || 'No ratings'} ({listing.reviews?.length || 0} reviews)</span>
-                  </div>
                 </div>
               </div>
             ))}
@@ -582,10 +545,8 @@ export default function UserDashboard() {
     latitude: null,
     longitude: null,
     place_id: '',
-    images: [],
-    imageFiles: [],
-    start_date: '', // Add this line
-    end_date: ''    // Add this line
+    image: null,
+    imageFile: null
   });
 
   if (loading) {
@@ -601,24 +562,16 @@ export default function UserDashboard() {
   }
 
   const handleImageUpload = (event) => {
-    const files = Array.from(event.target.files);
-
-    if (files.length < 5) {
-      alert('Please upload at least 5 images.');
-      event.target.value = ''; // Reset the input
-      return;
-    }
-
-    if (files.length >= 5) {
-      const imagePreviews = files.map(file => URL.createObjectURL(file));
+    const file = event.target.files[0];
+    if (file) {
       setNewListing(prev => ({ 
         ...prev, 
-        images: imagePreviews,
-        imageFiles: files
+        image: URL.createObjectURL(file),
+        imageFile: file  // Store the actual file
       }));
     }
   };
-  
+
   const handleInputChange = (event) => {
     const { name, value } = event.target
     setNewListing(prev => ({ ...prev, [name]: value }))
@@ -651,17 +604,13 @@ export default function UserDashboard() {
       formData.append('place_id', newListing.place_id);
       
       // Dates
-      if (!newListing.start_date || !newListing.end_date) {
-        throw new Error('Start date and end date are required');
-      }
-      formData.append('start_date', new Date(newListing.start_date).toISOString());
-      formData.append('end_date', new Date(newListing.end_date).toISOString());
-
+      const today = new Date();
+      formData.append('start_date', today.toISOString());
+      formData.append('end_date', new Date(today.setMonth(today.getMonth() + 3)).toISOString());
+      
       // Image
-      if (newListing.imageFiles && newListing.imageFiles.length > 0) {
-        newListing.imageFiles.forEach(file => {
-          formData.append('images', file);
-        });
+      if (newListing.imageFile) {
+        formData.append('images', newListing.imageFile);
       }
       
       // Debug log
@@ -688,8 +637,10 @@ export default function UserDashboard() {
         latitude: null,
         longitude: null,
         place_id: '',
-        images: [],       // Reset images array
-        imageFiles: []    // Reset imageFiles array
+        start_date: null,
+        end_date: null,
+        image: null,
+        imageFile: null
       });
       
       await refreshData();
@@ -700,12 +651,15 @@ export default function UserDashboard() {
   };
 
   const BidsTab = () => {
+    const navigate = useNavigate();
+
     if (!bids) return <div>Loading bids...</div>;
 
     const { active_bids, won_bids, lost_bids } = bids;
 
     const BidCard = ({ bid }) => (
-      <div className="bg-white p-4 rounded-lg shadow flex">
+      
+  <div className="bg-white p-4 rounded-lg shadow flex" onClick={() => navigate(`/listings/${bid.Property.id}`)}>
         <img 
           src={bid.Property?.images?.[0]?.image_url || '/placeholder.jpg'} 
           alt={bid.Property?.title} 
