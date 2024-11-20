@@ -26,6 +26,8 @@ const ProfileTab = ({ userData, onUpdateProfile, refreshData }) => {
   const [loading, setLoading] = useState(false);
 
   const fileInputRef = useRef(null);
+  const { user } = useAuth();
+
 
   const handleImageClick = () => {
     fileInputRef.current.click();
@@ -325,6 +327,7 @@ const ListingsTab = ({
 }) => {
   const { active_listings = [], past_listings = [] } = listings || {};
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   return (
     <div className="space-y-6">
@@ -333,6 +336,7 @@ const ListingsTab = ({
         <button
           type="button"
           onClick={() => {
+            console.log("HIII");
             setNewListing({
               title: '',
               description: '',
@@ -347,8 +351,12 @@ const ListingsTab = ({
               place_id: '',
               image: null,
               imageFile: null,
+              auction_end_date: null,
+              start_date: null,
+              end_date: null,
               id: null, // Ensure ID is cleared for new listings
             });
+            console.log(newListing);
             setShowAddListingForm(true);
           }}
           className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg flex items-center transition duration-300"
@@ -536,7 +544,7 @@ const ListingsTab = ({
               <div
                 key={listing.id}
                 className="bg-white p-4 rounded-lg shadow flex items-center space-x-4 cursor-pointer hover:shadow-lg transition-shadow duration-300"
-                onClick={() => navigate(`/listings/${listing.id}`)} // Navigate to details page
+                onClick={() => navigate(`/listings/${listing.id}/user/${user.id}`)} // Navigate to details page
               >
                 <img
                   src={listing.images?.[0]?.image_url || '/placeholder.jpg'}
@@ -690,6 +698,8 @@ export default function UserDashboard() {
     event.preventDefault();
     try {
       const formData = new FormData();
+  
+      // Append all necessary fields only once
       formData.append('title', newListing.title || '');
       formData.append('description', newListing.description || '');
       formData.append('min_price', newListing.price || '');
@@ -702,80 +712,40 @@ export default function UserDashboard() {
       formData.append('longitude', newListing.longitude || '');
       formData.append('place_id', newListing.place_id || '');
   
-      if (newListing.id) {
-        // Edit existing listing
-        if (newListing.imageFile) {
-          formData.append('images', newListing.imageFile); // Include new image if updated
-        }
-        const response = await api.put(`/properties/${newListing.id}`, formData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        });
-        console.log('Listing updated:', response.data);
-      } else {
-        // Add new listing
-        if (
-          !newListing.title ||
-          !newListing.description ||
-          !newListing.price ||
-          !newListing.address_line1 ||
-          !newListing.city ||
-          !newListing.state ||
-          !newListing.zip_code
-        ) {
-          throw new Error('All required fields must be filled for new listings.');
-        }
-  
-        if (newListing.imageFile) {
-          formData.append('images', newListing.imageFile); // Image is required for new listings
-        }
-        formData.append('start_date', new Date().toISOString());
-        formData.append('end_date', new Date(new Date().setMonth(new Date().getMonth() + 3)).toISOString());
-  
-        const response = await api.post('/properties', formData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        });
-        console.log('Property created:', response.data);
-      }
-      // Add each address field individually
-      formData.append('address_line1', newListing.address_line1);
-      formData.append('city', newListing.city);
-      formData.append('state', newListing.state);
-      formData.append('zip_code', newListing.zip_code);
-      formData.append('formatted_address', newListing.formatted_address);
-      formData.append('latitude', newListing.latitude);
-      formData.append('longitude', newListing.longitude);
-      formData.append('place_id', newListing.place_id);
-      
       // Dates
       if (!newListing.start_date || !newListing.end_date) {
         throw new Error('Start date and end date are required');
       }
       formData.append('start_date', new Date(newListing.start_date).toISOString());
       formData.append('end_date', new Date(newListing.end_date).toISOString());
+      if (!newListing.auction_end_date) {
+        throw new Error('Auction end date is required');
+      }
       formData.append('auction_end_date', new Date(newListing.auction_end_date).toISOString());
-
-      // Image
+  
+      // Images
       if (newListing.imageFiles && newListing.imageFiles.length > 0) {
         newListing.imageFiles.forEach(file => {
           formData.append('images', file);
         });
       }
-      // Image
-      if (newListing.imageFile) {
-        formData.append('images', newListing.imageFile);
-      }
-      
+  
       // Debug log
       for (let pair of formData.entries()) {
         console.log('FormData entry:', pair[0], pair[1]);
       }
-
-      const response = await api.post('/properties', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-
-      console.log('Property created:', response.data);
-
+  
+      if (newListing.id) {
+        // Edit existing listing
+        const response = await api.put(`/properties/${newListing.id}`, formData);
+        console.log('Listing updated:', response.data);
+      } else {
+        // Add new listing
+        const response = await api.post('/properties', formData);
+        console.log('Property created:', response.data);
+      }
+  
+      // Reset the form and refresh data
       setShowAddListingForm(false);
       setNewListing({
         title: '',
@@ -789,14 +759,13 @@ export default function UserDashboard() {
         latitude: null,
         longitude: null,
         place_id: '',
-        start_date: null,
-        end_date: null,
-        auction_end_date: null,
-        images: [],       // Reset images array
-        imageFiles: [],    // Reset imageFiles array
-        id: null, // Reset ID after editing
+        start_date: '',
+        end_date: '',
+        auction_end_date: '',
+        images: [],
+        imageFiles: [],
+        id: null,
       });
-  
       await refreshData();
     } catch (error) {
       console.error('Error creating/updating listing:', error);

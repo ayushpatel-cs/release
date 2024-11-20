@@ -6,18 +6,14 @@ import {
   BedDouble,
   Bath,
   MapPin,
-  Info,
-  Ban,
   Calendar as CalendarIcon,
-  Home,
-  User,
-  Star,
   CheckCircle,
 } from 'lucide-react';
 import api from '../../utils/api';
 
 export default function ListingDetail() {
   const [listing, setListing] = useState(null);
+  const [user, setUser] = useState(null); // New state for user data
   const [loading, setLoading] = useState(true);
   const [bidAmount, setBidAmount] = useState('');
   const [timeLeft, setTimeLeft] = useState('');
@@ -30,11 +26,17 @@ export default function ListingDetail() {
     const fetchListing = async () => {
       setLoading(true);
       try {
+        // Fetch the listing data
         const response = await api.get(`/properties/${id}`);
-        setListing(response.data);
-        setBidAmount(response.data.min_price?.toString() || '');
+        const listingData = response.data;
+        setListing(listingData);
+        setBidAmount(listingData.min_price?.toString() || '');
+
+        // Fetch the user data using user_id from the listing
+        const userResponse = await api.get(`/users/${listingData.user_id}`);
+        setUser(userResponse.data);
       } catch (error) {
-        console.error('Error fetching listing:', error);
+        console.error('Error fetching listing or user:', error);
       } finally {
         setLoading(false);
       }
@@ -84,7 +86,12 @@ export default function ListingDetail() {
 
       // Refresh listing data
       const response = await api.get(`/properties/${id}`);
-      setListing(response.data);
+      const listingData = response.data;
+      setListing(listingData);
+
+      // Refresh user data in case it changed
+      const userResponse = await api.get(`/users/${listingData.user_id}`);
+      setUser(userResponse.data);
     } catch (error) {
       console.error('Error placing bid:', error);
       alert(
@@ -289,7 +296,7 @@ export default function ListingDetail() {
             <section className="flex items-center justify-between">
               <div>
                 <h2 className="text-xl font-semibold mb-1">
-                  Entire {listing.type} hosted by {listing.owner?.name || 'Host'}
+                  Entire {listing.type} hosted by {user?.name || 'Host'}
                 </h2>
                 <div className="flex items-center space-x-4 text-gray-600">
                   <div className="flex items-center">
@@ -301,12 +308,21 @@ export default function ListingDetail() {
                     <span>{listing.bathrooms} bathrooms</span>
                   </div>
                 </div>
+                {/* First Available and Last Available Dates */}
+                <div className="mt-2 text-gray-600">
+                  <div>
+                    <CalendarIcon className="inline-block w-5 h-5 mr-1" />
+                    Available from{' '}
+                    {new Date(listing.start_date).toLocaleDateString()} to{' '}
+                    {new Date(listing.end_date).toLocaleDateString()}
+                  </div>
+                </div>
               </div>
               {/* Owner Avatar */}
               <div>
                 <img
-                  src={listing.owner?.avatar || '/default-avatar.png'}
-                  alt={listing.owner?.name || 'Host'}
+                  src={user?.profile_image_url || '/default-avatar.png'}
+                  alt={user?.name || 'Host'}
                   className="w-16 h-16 rounded-full"
                 />
               </div>
@@ -315,7 +331,9 @@ export default function ListingDetail() {
             {/* Description */}
             <section>
               <h2 className="text-xl font-semibold mb-4">About this property</h2>
-              <p className="text-gray-600 whitespace-pre-line">{listing.description}</p>
+              <p className="text-gray-600 whitespace-pre-line">
+                {listing.description}
+              </p>
             </section>
 
             {/* Amenities */}
@@ -343,7 +361,9 @@ export default function ListingDetail() {
             </section>
 
             {/* Bid History */}
-            {listing.bids && listing.bids.length > 0 && <BidHistory bids={listing.bids} />}
+            {listing.bids && listing.bids.length > 0 && (
+              <BidHistory bids={listing.bids} />
+            )}
           </div>
 
           {/* Right Column - Bid Box */}
