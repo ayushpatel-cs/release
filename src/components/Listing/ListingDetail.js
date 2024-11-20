@@ -91,6 +91,9 @@ export default function ListingDetail() {
         alert('End date must be after start date');
         return;
       }
+
+      console.log(startDate)
+      console.log(endDate)
   
       await api.post(`/bids/properties/${id}/bids`, {
         amount: parseInt(bidAmount),
@@ -164,10 +167,20 @@ export default function ListingDetail() {
                   {new Date(bid.created_at).toLocaleString()}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {new Date(bid.start_date).toLocaleDateString('en-US')}
+                  {new Date(bid.start_date).toLocaleDateString('en-US', {
+                    timeZone: 'UTC', 
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit'
+                  })}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {new Date(bid.end_date).toLocaleDateString('en-US')}
+                {new Date(bid.end_date).toLocaleDateString('en-US', {
+                    timeZone: 'UTC', 
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit'
+                  })}
                 </td>
               </tr>
             ))}
