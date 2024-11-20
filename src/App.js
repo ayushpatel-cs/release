@@ -23,6 +23,7 @@ function App() {
       <div>
         <Header />
         <Routes>
+          <Route path="/release" element={<Homepage />} />
           <Route path="/" element={<Homepage />} />
           <Route path="/search" element={<Search />} />
           <Route path="/listings/:id/user/:userId" element={<ProtectedListingRoute />} />

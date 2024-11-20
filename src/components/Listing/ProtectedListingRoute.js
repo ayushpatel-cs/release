@@ -9,9 +9,9 @@ const ProtectedListingRoute = () => {
   const { user } = useAuth(); // Get the current authenticated user
 
   // Check if the user in the URL matches the authenticated user
-  if (user && user.id.toString() === userId) {
+//   if (user && user.id.toString() === userId) {
     return <SellerListingDetail listingId={id} />;
-  }
+//   }
   // Otherwise, show the public ListingDetail
   return <ListingDetail listingId={id} />;
 };
