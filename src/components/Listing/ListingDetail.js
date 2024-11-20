@@ -91,9 +91,6 @@ export default function ListingDetail() {
         alert('End date must be after start date');
         return;
       }
-
-      console.log(startDate)
-      console.log(endDate)
   
       await api.post(`/bids/properties/${id}/bids`, {
         amount: parseInt(bidAmount),
