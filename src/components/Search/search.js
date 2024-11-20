@@ -124,6 +124,12 @@ const ListingCard = ({ listing, setModalState, navigate, user }) => {
           ${listing.min_price?.toLocaleString()} <span className="font-normal text-gray-600 text-base">/month</span>
         </p>
 
+        <div className="flex-1">
+          <p className="text-gray-600 mb-1">
+            <strong> Auction ends {new Date(listing.auction_end_date).toLocaleDateString()}</strong>
+          </p>
+        </div>
+
         <button 
           onClick={() => handleBid(listing)}
           className="w-full bg-[#6B7FF0] text-white py-2 rounded-lg hover:bg-[#5A6FE0] transition-colors mb-4"
