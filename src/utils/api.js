@@ -14,6 +14,9 @@ const baseURL = apiUrl.startsWith('http')
   ? apiUrl 
   : `${window.location.protocol}//${apiUrl}`;
 
+// Extract the base backend URL (without /api)
+export const backendUrl = baseURL.replace(/\/api$/, '');
+
 console.log('Final baseURL:', baseURL);
 
 const api = axios.create({
