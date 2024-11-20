@@ -128,6 +128,12 @@ export default function ListingDetail() {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                 Time
               </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Start Date
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                End Date
+              </th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
@@ -141,6 +147,12 @@ export default function ListingDetail() {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {new Date(bid.created_at).toLocaleString()}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {new Date(bid.start_date).toLocaleDateString('en-US')}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {new Date(bid.end_date).toLocaleDateString('en-US')}
                 </td>
               </tr>
             ))}
