@@ -295,12 +295,14 @@ export default function ImprovedSearchInterface() {
       if (filters.bedrooms > 0) params.append('bedrooms', filters.bedrooms);
       if (filters.bathrooms > 0) params.append('bathrooms', filters.bathrooms);
       if (filters.propertyType) params.append('type', filters.propertyType);
-  
+      filters.amenities.forEach((amenity) => {
+        params.append('amenities', amenity);
+      });
       const response = await api.get(`/search?${params.toString()}`);
       setListings(response.data.properties);
     } catch (error) {
       console.error('Error fetching listings:', error);
-      setError('No listings match these specifications');
+      setError('Failed to fetch listings');
     } finally {
       setLoading(false);
     }
