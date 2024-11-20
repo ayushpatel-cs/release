@@ -158,7 +158,7 @@ export default function ListingDetail() {
             {bids?.map((bid) => (
               <tr key={bid.id}>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {bid.bidder?.name || 'Anonymous'}
+                  {'Anonymous'}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                   ${bid.amount.toLocaleString()}
@@ -413,7 +413,7 @@ export default function ListingDetail() {
                 <h3 className="text-2xl font-bold">
                   ${listing.min_price.toLocaleString()}
                 </h3>
-                <p className="text-gray-600">Starting price</p>
+                <p className="text-gray-600">Suggested price</p>
               </div>
 
               {/* Auction Timer */}
