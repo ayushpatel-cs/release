@@ -2,13 +2,23 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { MapPin, Info, Ban, Calendar } from 'lucide-react';
+import {
+  BedDouble,
+  Bath,
+  MapPin,
+  Info,
+  Ban,
+  Calendar as CalendarIcon,
+  Home,
+  User,
+  Star,
+  CheckCircle,
+} from 'lucide-react';
 import api from '../../utils/api';
 
 export default function ListingDetail() {
   const [listing, setListing] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [bidAmount, setBidAmount] = useState('');
   const [timeLeft, setTimeLeft] = useState('');
   const { id } = useParams();
@@ -26,7 +36,6 @@ export default function ListingDetail() {
         setBidAmount(response.data.min_price?.toString() || '');
       } catch (error) {
         console.error('Error fetching listing:', error);
-        setError('Failed to fetch listing details');
       } finally {
         setLoading(false);
       }
@@ -35,49 +44,53 @@ export default function ListingDetail() {
     fetchListing();
   }, [id]);
 
-    // Update countdown timer
-    useEffect(() => {
-      if (!listing?.auction_end_date) return;
+  // Update countdown timer
+  useEffect(() => {
+    if (!listing?.auction_end_date) return;
 
-      const updateTimer = () => {
-        const now = new Date();
-        const end = new Date(listing.auction_end_date);
-        const diff = end - now;
+    const updateTimer = () => {
+      const now = new Date();
+      const end = new Date(listing.auction_end_date);
+      const diff = end - now;
 
-        if (diff <= 0) {
-          setTimeLeft('Auction ended');
-          return;
-        }
+      if (diff <= 0) {
+        setTimeLeft('Auction ended');
+        return;
+      }
 
-        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-        const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor(
+        (diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
+      );
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
 
-        setTimeLeft(`${days}d ${hours}h ${minutes}m ${seconds}s`);
-      };
+      setTimeLeft(`${days}d ${hours}h ${minutes}m ${seconds}s`);
+    };
 
-      updateTimer();
-      const timer = setInterval(updateTimer, 1000);
+    updateTimer();
+    const timer = setInterval(updateTimer, 1000);
 
-      return () => clearInterval(timer);
-    }, [listing?.auction_end_date]);
+    return () => clearInterval(timer);
+  }, [listing?.auction_end_date]);
 
   const handleBid = async () => {
     try {
       await api.post(`/bids/properties/${id}/bids`, {
-        amount: parseInt(bidAmount)
+        amount: parseInt(bidAmount),
       });
-      
+
       // Show success message
       alert('Bid placed successfully!');
-      
+
       // Refresh listing data
       const response = await api.get(`/properties/${id}`);
       setListing(response.data);
     } catch (error) {
       console.error('Error placing bid:', error);
-      alert('Failed to place bid: ' + (error.response?.data?.error || error.message));
+      alert(
+        'Failed to place bid: ' + (error.response?.data?.error || error.message)
+      );
     }
   };
 
@@ -86,13 +99,13 @@ export default function ListingDetail() {
     return new Date(listing.auction_end_date) <= new Date();
   };
 
-  // Calculate bid competitiveness (matching search page functionality)
+  // Calculate bid competitiveness
   const getBidCompetitiveness = () => {
     if (!bidAmount || !listing?.min_price) return 0;
     return Math.min(100, (parseInt(bidAmount) / listing.min_price) * 100);
   };
 
-  // Add a new BidHistory component
+  // BidHistory component
   const BidHistory = ({ bids }) => (
     <div className="mt-8">
       <h3 className="text-xl font-semibold mb-4">Bid History</h3>
@@ -100,9 +113,15 @@ export default function ListingDetail() {
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Bidder</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Time</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Bidder
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Amount
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Time
+              </th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
@@ -125,23 +144,44 @@ export default function ListingDetail() {
     </div>
   );
 
-  if (loading) return (
-    <div className="min-h-screen bg-[#FFF8F0] flex items-center justify-center">
-      <div className="text-xl">Loading...</div>
+  // Amenities component
+  const Amenities = ({ amenities }) => (
+    <div className="mt-8">
+      <h3 className="text-xl font-semibold mb-4">Amenities</h3>
+      <ul className="grid grid-cols-2 gap-4">
+        {amenities?.map((amenity, index) => (
+          <li key={index} className="flex items-center">
+            <CheckCircle className="w-5 h-5 text-green-500 mr-2" />
+            {amenity}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 
-  if (!listing) return (
-    <div className="min-h-screen bg-[#FFF8F0] flex items-center justify-center">
-      <div className="text-xl">Listing not found</div>
-    </div>
-  );
+  if (loading)
+    return (
+      <div className="min-h-screen bg-[#FFF8F0] flex items-center justify-center">
+        <div className="text-xl">Loading...</div>
+      </div>
+    );
+
+  if (!listing)
+    return (
+      <div className="min-h-screen bg-[#FFF8F0] flex items-center justify-center">
+        <div className="text-xl">Listing not found</div>
+      </div>
+    );
 
   return (
     <div className="min-h-screen bg-[#FFF8F0]">
       <div className="container mx-auto px-4 py-6 max-w-6xl">
         {/* Header */}
-        <h1 className="text-2xl font-semibold mb-6">{listing.title}</h1>
+        <h1 className="text-2xl font-semibold mb-2">{listing.title}</h1>
+        <div className="flex items-center text-gray-600 mb-6">
+          <MapPin className="w-4 h-4 mr-1" />
+          <span>{listing.formatted_address}</span>
+        </div>
 
         {/* Image Gallery */}
         <div className="relative rounded-3xl overflow-hidden mb-6">
@@ -213,7 +253,8 @@ export default function ListingDetail() {
               <button
                 onClick={() =>
                   setCurrentImageIndex(
-                    (currentImageIndex - 1 + listing.images.length) % listing.images.length
+                    (currentImageIndex - 1 + listing.images.length) %
+                      listing.images.length
                   )
                 }
                 className="absolute left-4 top-1/2 transform -translate-y-1/2 text-white text-5xl font-bold"
@@ -223,7 +264,9 @@ export default function ListingDetail() {
               {/* Next button */}
               <button
                 onClick={() =>
-                  setCurrentImageIndex((currentImageIndex + 1) % listing.images.length)
+                  setCurrentImageIndex(
+                    (currentImageIndex + 1) % listing.images.length
+                  )
                 }
                 className="absolute right-4 top-1/2 transform -translate-y-1/2 text-white text-5xl font-bold"
               >
@@ -243,18 +286,52 @@ export default function ListingDetail() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Column - Details */}
           <div className="col-span-2 space-y-8">
+            {/* Property Info */}
+            <section className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-semibold mb-1">
+                  Entire {listing.type} hosted by {listing.owner?.name || 'Host'}
+                </h2>
+                <div className="flex items-center space-x-4 text-gray-600">
+                  <div className="flex items-center">
+                    <BedDouble className="w-5 h-5 mr-1" />
+                    <span>{listing.bedrooms} bedrooms</span>
+                  </div>
+                  <div className="flex items-center">
+                    <Bath className="w-5 h-5 mr-1" />
+                    <span>{listing.bathrooms} bathrooms</span>
+                  </div>
+                </div>
+              </div>
+              {/* Owner Avatar */}
+              <div>
+                <img
+                  src={listing.owner?.avatar || '/default-avatar.png'}
+                  alt={listing.owner?.name || 'Host'}
+                  className="w-16 h-16 rounded-full"
+                />
+              </div>
+            </section>
+
             {/* Description */}
             <section>
               <h2 className="text-xl font-semibold mb-4">About this property</h2>
-              <p className="text-gray-600">{listing.description}</p>
+              <p className="text-gray-600 whitespace-pre-line">{listing.description}</p>
             </section>
+
+            {/* Amenities */}
+            {listing.amenities && listing.amenities.length > 0 && (
+              <Amenities amenities={listing.amenities} />
+            )}
 
             {/* Location */}
             <section>
               <h2 className="text-xl font-semibold mb-4">Location</h2>
               <div className="aspect-[2/1] relative rounded-lg overflow-hidden bg-gray-200">
                 <iframe
-                  src={`https://www.google.com/maps/embed/v1/place?key=${process.env.REACT_APP_GOOGLE_MAPS_API_KEY}&q=${encodeURIComponent(listing.address)}`}
+                  src={`https://www.google.com/maps/embed/v1/place?key=${process.env.REACT_APP_GOOGLE_MAPS_API_KEY}&q=${encodeURIComponent(
+                    listing.formatted_address
+                  )}`}
                   width="100%"
                   height="100%"
                   style={{ border: 0 }}
@@ -263,36 +340,51 @@ export default function ListingDetail() {
                   className="absolute inset-0"
                 />
               </div>
-              <p className="mt-4 text-gray-600">{listing.address}</p>
+              <p className="mt-4 text-gray-600">{listing.formatted_address}</p>
             </section>
 
             {/* Bid History */}
-            <BidHistory bids={listing.bids} />
+            {listing.bids && listing.bids.length > 0 && <BidHistory bids={listing.bids} />}
           </div>
 
           {/* Right Column - Bid Box */}
           <div className="col-span-1">
             <div className="bg-white p-6 rounded-lg shadow-lg sticky top-6">
               <div className="mb-6">
-                <h3 className="text-2xl font-bold">${listing.min_price.toLocaleString()}</h3>
+                <h3 className="text-2xl font-bold">
+                  ${listing.min_price.toLocaleString()}
+                </h3>
                 <p className="text-gray-600">Starting price</p>
               </div>
 
               {/* Auction Timer */}
               <div className="mb-6">
-                <div className={`p-4 rounded-lg ${isAuctionEnded() ? 'bg-red-100' : 'bg-green-100'}`}>
+                <div
+                  className={`p-4 rounded-lg ${
+                    isAuctionEnded() ? 'bg-red-100' : 'bg-green-100'
+                  }`}
+                >
                   <div className="flex items-center gap-2">
-                    <Calendar className="w-5 h-5" />
-                    <span className="font-medium">Auction {isAuctionEnded() ? 'ended' : 'ends in'}:</span>
+                    <CalendarIcon className="w-5 h-5" />
+                    <span className="font-medium">
+                      Auction {isAuctionEnded() ? 'ended' : 'ends in'}:
+                    </span>
                   </div>
                   <div className="mt-2">
                     {isAuctionEnded() ? (
-                      <span className="text-red-600 font-bold">Auction has ended</span>
+                      <span className="text-red-600 font-bold">
+                        Auction has ended
+                      </span>
                     ) : (
                       <>
-                        <div className="text-lg font-bold text-green-600">{timeLeft}</div>
+                        <div className="text-lg font-bold text-green-600">
+                          {timeLeft}
+                        </div>
                         <div className="text-sm text-gray-600 mt-1">
-                          Ends on {new Date(listing.auction_end_date).toLocaleString()}
+                          Ends on{' '}
+                          {new Date(
+                            listing.auction_end_date
+                          ).toLocaleString()}
                         </div>
                       </>
                     )}
@@ -307,7 +399,9 @@ export default function ListingDetail() {
                       Your bid amount
                     </label>
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
+                        $
+                      </span>
                       <input
                         type="number"
                         value={bidAmount}
@@ -316,12 +410,14 @@ export default function ListingDetail() {
                         min={listing.min_price}
                       />
                     </div>
-                    {/* Add bid competitiveness indicator */}
+                    {/* Bid competitiveness indicator */}
                     <div className="mt-4">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Bid Competitiveness:</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Bid Competitiveness:
+                      </label>
                       <div className="w-full bg-gray-200 rounded-full h-2.5">
-                        <div 
-                          className="bg-blue-600 h-2.5 rounded-full" 
+                        <div
+                          className="bg-blue-600 h-2.5 rounded-full"
                           style={{ width: `${getBidCompetitiveness()}%` }}
                         />
                       </div>
