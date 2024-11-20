@@ -130,15 +130,6 @@ const ListingCard = ({ listing, setModalState, navigate, user }) => {
           ))}
         </div>
 
-        {/* Add auction end date display */}
-        {listing.auction_end_date && (
-          <div className="mb-3">
-            <p className="text-sm font-medium text-red-600">
-              Auction ends: {new Date(listing.auction_end_date).toLocaleString()}
-            </p>
-          </div>
-        )}
-        
         <p className="text-gray-600 mb-2">{listing.address}</p>
         <p className="font-semibold text-2xl text-[#6B7FF0] mb-4">
           ${listing.min_price?.toLocaleString()} <span className="font-normal text-gray-600 text-base">/month</span>
@@ -229,13 +220,19 @@ export default function ImprovedSearchInterface() {
 
   const [mapCenter, setMapCenter] = useState(null);
   const mapRef = useRef(null);
-  const [bidAmount, setBidAmount] = useState('');
+  const [bidData, setBidData] = useState({
+    amount: '',
+    startDate: '',
+    endDate: ''
+  });
+  
   const { user } = useAuth();
   const navigate = useNavigate();
 
   
   const closeModal = (modalName) => {
     setModalState(prev => ({ ...prev, [modalName]: { isOpen: false, listing: null } }));
+    setBidData({ amount: '', startDate: '', endDate: '' }); // Reset bid data when closing
   };
 
   const submitBid = async () => {
@@ -243,46 +240,47 @@ export default function ImprovedSearchInterface() {
       navigate('/login');
       return;
     }
-
+  
+    if (!bidData.amount || !bidData.startDate || !bidData.endDate) {
+      alert('Please fill in all bid details');
+      return;
+    }
+  
+    const startDate = new Date(bidData.startDate);
+    const endDate = new Date(bidData.endDate);
+    const now = new Date();
+  
+    // Validate dates
+    if (startDate < now) {
+      alert('Start date must be in the future');
+      return;
+    }
+  
+    if (endDate <= startDate) {
+      alert('End date must be after start date');
+      return;
+    }
+  
     try {
-      const response = await api.post(`/bids/properties/${modalState.bid.listing.id}/bids`, {
-        amount: parseInt(bidAmount)
+      const response = await api.post(`/properties/${modalState.bid.listing.id}/bids`, {
+        amount: parseFloat(bidData.amount),
+        start_date: bidData.startDate,
+        end_date: bidData.endDate
       });
       
-      // Show success message
-      alert('Bid placed successfully!');
-      
-      closeModal('bid');
-      setBidAmount('');
-      
-      // Refresh listings to show updated bid information
-      fetchListings();
+      if (response.data) {
+        alert('Bid placed successfully!');
+        closeModal('bid');
+        // Refresh the listings to show the new bid
+        fetchListings();
+      }
     } catch (error) {
       console.error('Error placing bid:', error);
-      alert('Failed to place bid: ' + (error.response?.data?.error || error.message));
+      const errorMessage = error.response?.data?.error || 'Failed to place bid';
+      alert(`Error: ${errorMessage}`);
     }
   };
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const startDateParam = params.get('start_date');
-    const endDateParam = params.get('end_date');
   
-    if (startDateParam) setStartDate(startDateParam);
-    if (endDateParam) setEndDate(endDateParam);
-  }, [location.search]);
-
-  useEffect(() => {
-    // Get search params from URL
-    const params = new URLSearchParams(window.location.search);
-    const lat = params.get('lat');
-    const lng = params.get('lng');
-    const address = params.get('address');
-    
-    if (lat && lng) {
-      setMapCenter({ lat: parseFloat(lat), lng: parseFloat(lng) });
-      setSearchLocation(address || '');
-    }
-  }, []);
 
   // Move fetchListings outside useEffect and make it reusable
   const fetchListings = async () => {
@@ -473,40 +471,66 @@ export default function ImprovedSearchInterface() {
           )}
         </div>
       </div>
-
       <Modal
-        isOpen={modalState.bid.isOpen}
-        onClose={() => closeModal('bid')}
-        title="Place a Bid"
-      >
-        <p className="mb-4">Current price: ${modalState.bid.listing?.min_price}/month</p>
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Your Bid:</label>
-          <input
-            type="number"
-            value={bidAmount}
-            onChange={(e) => setBidAmount(e.target.value)}
-            className="w-full p-2 border rounded"
-          />
-        </div>
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Bid Competitiveness:</label>
-          <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
-            <div 
-              className="bg-blue-600 h-2.5 rounded-full" 
-              style={{
-                width: `${Math.min(100, (parseInt(bidAmount) / modalState.bid.listing?.min_price) * 100)}%`
-              }}
-            />
-          </div>
-        </div>
-        <button 
-          onClick={submitBid} 
-          className="w-full px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-        >
-          Submit Bid
-        </button>
-      </Modal>
+  isOpen={modalState.bid.isOpen}
+  onClose={() => closeModal('bid')}
+  title="Place a Bid"
+>
+  <p className="mb-4">Current price: ${modalState.bid.listing?.min_price}/month</p>
+  <div className="space-y-4">
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1">Your Bid:</label>
+      <input
+        type="number"
+        value={bidData.amount}
+        onChange={(e) => setBidData(prev => ({ ...prev, amount: e.target.value }))}
+        className="w-full p-2 border rounded"
+        placeholder="Enter bid amount"
+      />
+    </div>
+    
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1">Start Date:</label>
+      <input
+        type="date"
+        value={bidData.startDate}
+        onChange={(e) => setBidData(prev => ({ ...prev, startDate: e.target.value }))}
+        className="w-full p-2 border rounded"
+        min={new Date().toISOString().split('T')[0]}
+      />
+    </div>
+    
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1">End Date:</label>
+      <input
+        type="date"
+        value={bidData.endDate}
+        onChange={(e) => setBidData(prev => ({ ...prev, endDate: e.target.value }))}
+        className="w-full p-2 border rounded"
+        min={bidData.startDate || new Date().toISOString().split('T')[0]}
+      />
+    </div>
+
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1">Bid Competitiveness:</label>
+      <div className="w-full bg-gray-200 rounded-full h-2.5">
+        <div 
+          className="bg-blue-600 h-2.5 rounded-full" 
+          style={{
+            width: `${Math.min(100, (parseInt(bidData.amount) / modalState.bid.listing?.min_price) * 100)}%`
+          }}
+        />
+      </div>
+    </div>
+
+    <button 
+      onClick={submitBid} 
+      className="w-full px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+    >
+      Submit Bid
+    </button>
+  </div>
+</Modal>
 
       <Modal
         isOpen={modalState.info.isOpen}
