@@ -130,6 +130,15 @@ const ListingCard = ({ listing, setModalState, navigate, user }) => {
           ))}
         </div>
 
+        {/* Add auction end date display */}
+        {listing.auction_end_date && (
+          <div className="mb-3">
+            <p className="text-sm font-medium text-red-600">
+              Auction ends: {new Date(listing.auction_end_date).toLocaleString()}
+            </p>
+          </div>
+        )}
+        
         <p className="text-gray-600 mb-2">{listing.address}</p>
         <p className="font-semibold text-2xl text-[#6B7FF0] mb-4">
           ${listing.min_price?.toLocaleString()} <span className="font-normal text-gray-600 text-base">/month</span>
