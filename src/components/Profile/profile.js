@@ -152,7 +152,6 @@ const ProfileTab = ({ userData, onUpdateProfile, refreshData }) => {
         </div>
         <div>
           <h2 className="text-3xl font-bold mb-1">{profileData.name}</h2>
-          <p className="text-gray-600 mb-2">Joined {profileData.joinedDate}</p>
           <div className="flex space-x-2">
             {profileData.verifications.map((verification, index) => (
               <span key={index} className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
