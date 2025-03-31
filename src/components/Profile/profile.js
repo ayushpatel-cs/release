@@ -42,9 +42,7 @@ const ProfileTab = ({ userData, onUpdateProfile, refreshData }) => {
 
     try {
       setLoading(true);
-      const response = await api.put('/users/profile/image', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+      const response = await api.put('/users/profile/image', formData)
       
       setProfileData(prev => ({
         ...prev,
@@ -877,6 +875,15 @@ export default function UserDashboard() {
   const handleAddListing = async (event) => {
     event.preventDefault();
     try {
+if (!newListing.title || !newListing.address_line1) {
+  throw new Error('Title and address are required');
+}
+if (!newListing.start_date || !newListing.end_date || !newListing.auction_end_date) {
+  throw new Error('Start date, end date, and auction end date are required');
+}
+if (!newListing.id && (!newListing.imageFiles || newListing.imageFiles.length < 5)) {
+  throw new Error('Please upload at least 5 images for new listings');
+}
       const formData = new FormData();
   
       // Append all necessary fields only once
@@ -892,19 +899,12 @@ export default function UserDashboard() {
       formData.append('longitude', newListing.longitude || '');
       formData.append('place_id', newListing.place_id || '');
   
-      // Dates
-      if (!newListing.start_date || !newListing.end_date) {
-        throw new Error('Start date and end date are required');
-      }
       formData.append('start_date', new Date(newListing.start_date).toISOString());
       formData.append('end_date', new Date(newListing.end_date).toISOString());
-      if (!newListing.auction_end_date) {
-        throw new Error('Auction end date is required');
-      }
       formData.append('auction_end_date', new Date(newListing.auction_end_date).toISOString());
       formData.append('bedrooms', newListing.bedrooms);
       formData.append('bathrooms', newListing.bathrooms);
-      formData.append('amenities', JSON.stringify(newListing.amenities));
+      formData.append('amenities', JSON.stringify(newListing.amenities || []));
 
       // Images
       if (newListing.imageFiles && newListing.imageFiles.length > 0) {
@@ -924,11 +924,7 @@ export default function UserDashboard() {
         console.log('Listing updated:', response.data);
       } else {
         // Add new listing
-        const response = await api.post('/properties', formData,{
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        });
+        const response = await api.post('/properties', formData);
         console.log('Property created:', response.data);
       }
   
