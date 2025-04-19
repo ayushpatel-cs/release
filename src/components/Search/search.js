@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Search, Sliders, Wifi, UtensilsCrossed, Dumbbell, Pencil, DollarSign, Bed, Bath, Home, MapPin, ArrowUpDown } from 'lucide-react';
 import homepageImage from '../../images/homepage.png';
 import apartment2Image from '../../images/apartment_2.webp';
@@ -10,6 +10,8 @@ import GoogleMapComponent from './GoogleMap';
 import CitySearchAutocomplete from '../Common/CitySearchAutocomplete';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { debounce } from '../../utils/helpers';
+import { formatDate } from '../../utils/dateUtils';
 
 const images = [homepageImage, apartment2Image, apartment3Image, condo1Image];
 
@@ -98,6 +100,7 @@ const ListingCard = ({ listing, setModalState, navigate, user }) => {
             src={listing.images?.[0]?.image_url || '/placeholder.jpg'} 
             alt={listing.title} 
             className="w-full h-full object-cover"
+            onError={(e) => { e.target.src = '/placeholder.jpg'; }}
           />
           <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4">
             <h3 className="text-xl font-semibold text-white">{listing.title}</h3>
@@ -187,6 +190,7 @@ export default function ImprovedSearchInterface() {
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [bidError, setBidError] = useState(null);
   const location = useLocation();
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -224,16 +228,26 @@ export default function ImprovedSearchInterface() {
   const closeModal = (modalName) => {
     setModalState(prev => ({ ...prev, [modalName]: { isOpen: false, listing: null } }));
     setBidData({ amount: '', startDate: '', endDate: '' });
+    setBidError(null);
   };
 
   const submitBid = async () => {
+    setBidError(null);
+    
     if (!user) {
       navigate('/login');
       return;
     }
   
+    // Validate amount
+    if (!bidData.amount || isNaN(parseInt(bidData.amount)) || parseInt(bidData.amount) <= 0) {
+      setBidError('Please enter a valid bid amount');
+      return;
+    }
+    
+    // Validate dates
     if (!bidData.startDate || !bidData.endDate) {
-      alert('Please select both start and end dates');
+      setBidError('Please select both start and end dates');
       return;
     }
   
@@ -241,7 +255,7 @@ export default function ImprovedSearchInterface() {
     const endDate = new Date(bidData.endDate);
   
     if (startDate >= endDate) {
-      alert('End date must be after start date');
+      setBidError('End date must be after start date');
       return;
     }
   
@@ -252,12 +266,11 @@ export default function ImprovedSearchInterface() {
         end_date: bidData.endDate
       });
       
-      alert('Bid placed successfully!');
       closeModal('bid');
       fetchListings();
     } catch (error) {
       console.error('Error placing bid:', error);
-      alert('Failed to place bid: ' + (error.response?.data?.error || error.message));
+      setBidError('Failed to place bid: ' + (error.response?.data?.error || error.message));
     }
   };
 
@@ -330,9 +343,19 @@ export default function ImprovedSearchInterface() {
     }
 };
 
+  // Use debounce for the fetchListings function
+  const debouncedFetchListings = useCallback(
+    debounce(() => {
+      fetchListings();
+    }, 500),
+    [mapCenter, filters, startDate, endDate]
+  );
+
   useEffect(() => {
-    fetchListings();
-  }, [mapCenter, filters, startDate, endDate]);
+    if (mapCenter) {
+      debouncedFetchListings();
+    }
+  }, [mapCenter, filters, startDate, endDate, debouncedFetchListings]);
 
   const handleFilterChange = (filterName, value) => {
     setFilters(prevFilters => ({ ...prevFilters, [filterName]: value }));
@@ -487,6 +510,13 @@ export default function ImprovedSearchInterface() {
         title="Place a Bid"
       >
         <p className="mb-4">Current price: ${modalState.bid.listing?.min_price}/month</p>
+        
+        {bidError && (
+          <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm">
+            {bidError}
+          </div>
+        )}
+        
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Your Bid:</label>

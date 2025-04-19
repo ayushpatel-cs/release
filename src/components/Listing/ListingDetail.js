@@ -8,13 +8,16 @@ import {
   MapPin,
   Calendar as CalendarIcon,
   CheckCircle,
+  AlertCircle,
 } from 'lucide-react';
 import api from '../../utils/api';
+import { formatDate, getTimeLeft, isValidDateRange } from '../../utils/dateUtils';
 
 export default function ListingDetail() {
   const [listing, setListing] = useState(null);
   const [user, setUser] = useState(null); // New state for user data
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [bidAmount, setBidAmount] = useState('');
   const [timeLeft, setTimeLeft] = useState('');
   const { id } = useParams();
@@ -27,6 +30,7 @@ export default function ListingDetail() {
   useEffect(() => {
     const fetchListing = async () => {
       setLoading(true);
+      setError(null);
       try {
         // Fetch the listing data
         const response = await api.get(`/properties/${id}`);
@@ -39,6 +43,7 @@ export default function ListingDetail() {
         setUser(userResponse.data);
       } catch (error) {
         console.error('Error fetching listing or user:', error);
+        setError('Failed to load listing. Please try again later.');
       } finally {
         setLoading(false);
       }
@@ -52,23 +57,7 @@ export default function ListingDetail() {
     if (!listing?.auction_end_date) return;
 
     const updateTimer = () => {
-      const now = new Date();
-      const end = new Date(listing.auction_end_date);
-      const diff = end - now;
-
-      if (diff <= 0) {
-        setTimeLeft('Auction ended');
-        return;
-      }
-
-      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-      const hours = Math.floor(
-        (diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
-      );
-      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-
-      setTimeLeft(`${days}d ${hours}h ${minutes}m ${seconds}s`);
+      setTimeLeft(getTimeLeft(listing.auction_end_date));
     };
 
     updateTimer();
@@ -80,15 +69,12 @@ export default function ListingDetail() {
   const handleBid = async () => {
     try {
       if (!startDate || !endDate) {
-        alert('Please select both start and end dates');
+        setError('Please select both start and end dates');
         return;
       }
   
-      const start = new Date(startDate);
-      const end = new Date(endDate);
-  
-      if (start >= end) {
-        alert('End date must be after start date');
+      if (!isValidDateRange(startDate, endDate)) {
+        setError('End date must be after start date');
         return;
       }
   
@@ -99,8 +85,8 @@ export default function ListingDetail() {
       });
   
       // Show success message
-      alert('Bid placed successfully!');
-  
+      setError(null);
+      
       // Refresh listing data
       const response = await api.get(`/properties/${id}`);
       const listingData = response.data;
@@ -111,7 +97,7 @@ export default function ListingDetail() {
       setUser(userResponse.data);
     } catch (error) {
       console.error('Error placing bid:', error);
-      alert('Failed to place bid: ' + (error.response?.data?.error || error.message));
+      setError('Failed to place bid: ' + (error.response?.data?.error || error.message));
     }
   };
 
@@ -161,28 +147,13 @@ export default function ListingDetail() {
                   ${bid.amount.toLocaleString()}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {new Date(bid.created_at).toLocaleDateString('en-US', {
-                      timeZone: 'UTC',
-                      year: 'numeric',
-                      month: '2-digit',
-                      day: '2-digit',
-                    })}
+                  {formatDate(bid.created_at)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {new Date(bid.start_date).toLocaleDateString('en-US', {
-                    timeZone: 'UTC', 
-                    year: 'numeric',
-                    month: '2-digit',
-                    day: '2-digit'
-                  })}
+                  {formatDate(bid.start_date)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {new Date(bid.end_date).toLocaleDateString('en-US', {
-                    timeZone: 'UTC', 
-                    year: 'numeric',
-                    month: '2-digit',
-                    day: '2-digit'
-                  })}
+                  {formatDate(bid.end_date)}
                 </td>
               </tr>
             ))}
@@ -214,6 +185,16 @@ export default function ListingDetail() {
       </div>
     );
 
+  if (error && !listing)
+    return (
+      <div className="min-h-screen bg-[#FFF8F0] flex items-center justify-center">
+        <div className="text-xl text-red-600 flex items-center">
+          <AlertCircle className="w-6 h-6 mr-2" />
+          {error}
+        </div>
+      </div>
+    );
+
   if (!listing)
     return (
       <div className="min-h-screen bg-[#FFF8F0] flex items-center justify-center">
@@ -224,6 +205,14 @@ export default function ListingDetail() {
   return (
     <div className="min-h-screen bg-[#FFF8F0]">
       <div className="container mx-auto px-4 py-6 max-w-6xl">
+        {/* Error Display */}
+        {error && (
+          <div className="mb-4 p-4 bg-red-100 text-red-700 rounded-lg flex items-center">
+            <AlertCircle className="w-5 h-5 mr-2" />
+            {error}
+          </div>
+        )}
+        
         {/* Header */}
         <h1 className="text-2xl font-semibold mb-2">{listing.title}</h1>
         <div className="flex items-center text-gray-600 mb-6">
@@ -244,6 +233,7 @@ export default function ListingDetail() {
                   setCurrentImageIndex(0);
                   setIsModalOpen(true);
                 }}
+                onError={(e) => { e.target.src = '/placeholder.jpg'; }}
               />
             </div>
             {/* Thumbnails */}
@@ -257,6 +247,7 @@ export default function ListingDetail() {
                     setCurrentImageIndex(index + 1);
                     setIsModalOpen(true);
                   }}
+                  onError={(e) => { e.target.src = '/placeholder.jpg'; }}
                 />
                 {index === 3 && listing.images.length > 5 && (
                   <button
@@ -325,6 +316,7 @@ export default function ListingDetail() {
                 src={listing.images[currentImageIndex].image_url}
                 alt={`Image ${currentImageIndex + 1}`}
                 className="w-full max-h-screen object-contain rounded-lg"
+                onError={(e) => { e.target.src = '/placeholder.jpg'; }}
               />
             </div>
           </div>
@@ -355,8 +347,8 @@ export default function ListingDetail() {
                   <div>
                     <CalendarIcon className="inline-block w-5 h-5 mr-1" />
                     Available from{' '}
-                    {new Date(listing.start_date).toLocaleDateString()} to{' '}
-                    {new Date(listing.end_date).toLocaleDateString()}
+                    {formatDate(listing.start_date)} to{' '}
+                    {formatDate(listing.end_date)}
                   </div>
                 </div>
               </div>
@@ -444,9 +436,7 @@ export default function ListingDetail() {
                         </div>
                         <div className="text-sm text-gray-600 mt-1">
                           Ends on{' '}
-                          {new Date(
-                            listing.auction_end_date
-                          ).toLocaleString()}
+                          {formatDate(listing.auction_end_date)}
                         </div>
                       </>
                     )}
